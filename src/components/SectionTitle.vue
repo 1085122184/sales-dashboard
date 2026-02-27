@@ -19,7 +19,7 @@ defineProps<{
 }
 
 .title-text {
-  font-size: 16px;
+  font-size: var(--fs-md);
   font-weight: 700;
   color: var(--color-text-primary);
   position: relative;

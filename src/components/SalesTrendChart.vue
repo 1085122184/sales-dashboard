@@ -59,7 +59,7 @@ const option = computed(() => {
       text: `${product} 销售趋势`,
       left: 'center',
       top: 6,
-      textStyle: { fontSize: 15, fontWeight: 700, color: '#1e3a5f' },
+      textStyle: { fontSize: 17, fontWeight: 700, color: '#1e3a5f' },
     },
     legend: {
       bottom: 6,
@@ -68,7 +68,7 @@ const option = computed(() => {
       itemWidth: 8,
       itemHeight: 8,
       itemGap: 20,
-      textStyle: { fontSize: 12, color: '#6b7280' },
+      textStyle: { fontSize: 17, color: '#6b7280' },
     },
     tooltip: {
       trigger: 'axis',
@@ -76,7 +76,7 @@ const option = computed(() => {
       borderColor: '#e2e8f0',
       borderWidth: 1,
       padding: [10, 14],
-      textStyle: { color: '#1e293b', fontSize: 13 },
+      textStyle: { color: '#1e293b', fontSize: 17 },
       formatter(params: any) {
         const date = params[0].axisValue
         const vol  = params.find((p: any) => p.seriesName === '销量（吨）')
@@ -102,7 +102,7 @@ const option = computed(() => {
       data: dates,
       axisLine: { lineStyle: { color: '#e2e8f0' } },
       axisTick: { show: false },
-      axisLabel: { color: '#9ca3af', fontSize: 12 },
+      axisLabel: { color: '#9ca3af', fontSize: 17 },
     },
     yAxis: [
       {
@@ -111,9 +111,9 @@ const option = computed(() => {
         name: '销量（吨）',
         position: 'left',
         nameLocation: 'end',
-        nameTextStyle: { color: COLOR_VOL, fontSize: 11, fontWeight: 600 },
+        nameTextStyle: { color: COLOR_VOL, fontSize: 17, fontWeight: 600 },
         nameGap: 10,
-        axisLabel: { color: COLOR_VOL, fontSize: 11 },
+        axisLabel: { color: COLOR_VOL, fontSize: 17 },
         axisLine: { show: true, lineStyle: { color: COLOR_VOL, width: 2 } },
         axisTick: { show: false },
         splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
@@ -126,11 +126,11 @@ const option = computed(() => {
         name: '价格（元）',
         position: 'right',
         nameLocation: 'end',
-        nameTextStyle: { color: COLOR_PRICE, fontSize: 11, fontWeight: 600 },
+        nameTextStyle: { color: COLOR_PRICE, fontSize: 17, fontWeight: 600 },
         nameGap: 10,
         axisLabel: {
           color: COLOR_PRICE,
-          fontSize: 11,
+          fontSize: 17,
           formatter: (v: number) => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
         },
         axisLine: { show: true, lineStyle: { color: COLOR_PRICE, width: 2 } },
@@ -162,7 +162,7 @@ const option = computed(() => {
           symbol: 'pin',
           symbolSize: 36,
           data: [{ type: 'max', name: '最高' }],
-          label: { fontSize: 11, color: '#fff' },
+          label: { fontSize: 17, color: '#fff' },
           itemStyle: { color: COLOR_VOL },
         },
       },
@@ -243,12 +243,12 @@ onUnmounted(() => { window.removeEventListener('resize', () => inst?.resize()); 
   border-radius: 8px;
   padding: 8px 14px;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: var(--fs-xs);
   flex-wrap: wrap;
 }
 .corr-label { color: #6b7280; white-space: nowrap; }
-.corr-coef  { font-size: 16px; font-weight: 800; white-space: nowrap; }
-.corr-desc  { font-weight: 600; font-size: 12px; flex: 1; min-width: 120px; }
+.corr-coef  { font-size: var(--fs-md); font-weight: 800; white-space: nowrap; }
+.corr-desc  { font-weight: 600; font-size: var(--fs-xs); flex: 1; min-width: 120px; }
 .corr-track {
   position: relative;
   width: 100px;
@@ -277,5 +277,5 @@ onUnmounted(() => { window.removeEventListener('resize', () => inst?.resize()); 
   transform: translateX(-50%);
 }
 
-.chart { width: 100%; height: 360px; }
+.chart { width: 100%; height: 340px; }
 </style>

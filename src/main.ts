@@ -1,5 +1,11 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import router from './router' // 引入路由实例
 import '@/assets/styles/global.css'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+
+// 注册路由插件
+app.use(router) 
+
+app.mount('#app')

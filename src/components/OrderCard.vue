@@ -37,13 +37,13 @@ defineProps<{
 .order-card:hover { box-shadow: var(--shadow-card-hover); }
 
 .card-label {
-  font-size: 22px;
+  font-size: var(--fs-sm);
   color: #374151;
   font-weight: 500;
   margin-bottom: 4px;
 }
 .card-count {
-  font-size: 34px;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   color: #111827;
   line-height: 1.1;
@@ -56,6 +56,6 @@ defineProps<{
   align-items: center;
   margin-bottom: 6px;
 }
-.ratio-label { font-size: 16px; color: #6b7280; }
-.ratio-value { font-size: 16px; font-weight: 500; color: #6b7280; }
+.ratio-label { font-size: var(--fs-xs); color: #6b7280; }
+.ratio-value { font-size: var(--fs-xs); font-weight: 500; color: #6b7280; }
 </style>

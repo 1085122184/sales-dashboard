@@ -95,18 +95,18 @@ const colorMap = {
 .metric-card:hover { box-shadow: var(--shadow-card-hover); }
 
 .card-top { flex: 1; display: flex; flex-direction: column; }
-.card-label { font-size: 22px; color: #374151; font-weight: 500; margin-bottom: 8px; }
-.card-value { font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+.card-label { font-size: var(--fs-sm); color: #374151; font-weight: 500; margin-bottom: 8px; }
+.card-value { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
 
 .card-bottom { flex-shrink: 0; }
 .divider { height: 1px; margin: 12px 0 10px; }
 
 .budget-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
-.row-pct { font-size: 16px; font-weight: 600; color: #374151; }
+.row-pct { font-size: var(--fs-xs); font-weight: 600; color: #374151; }
 
 .detail-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
-.row-label { font-size: 16px; color: #6b7280; }
-.row-value { font-size: 16px; font-weight: 600; color: #111827; }
+.row-label { font-size: var(--fs-xs); color: #6b7280; }
+.row-value { font-size: var(--fs-xs); font-weight: 600; color: #111827; }
 .text-danger { color: #dc2626 !important; }
 .text-success { color: #16a34a !important; }
 </style>

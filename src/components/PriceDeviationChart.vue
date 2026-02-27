@@ -23,57 +23,37 @@ const props = defineProps<{
 const chartRef = ref<HTMLDivElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
-const COLOR_BLUE  = '#6366f1'
-const COLOR_GREEN = '#22d3a5'
-const DIM_OPACITY = 0.15  // 未选中时的透明度
-
-/**
- * 根据是否有选中产品，动态生成每根柱子的颜色
- * 选中 → 原色；未选中且有选中项 → 原色 + 低透明度
- */
-function getItemStyle(baseColor: string, productName: string) {
-  if (!props.selectedProduct || props.selectedProduct === productName) {
-    return { color: baseColor, borderRadius: [0, 8, 8, 0] }
-  }
-  // 将颜色透明度降低
-  return {
-    color: baseColor,
-    opacity: DIM_OPACITY,
-    borderRadius: [0, 8, 8, 0] as [number, number, number, number],
-  }
-}
+// 取色尽量贴近您的截图
+const COLOR_BLUE  = '#6e6df1' // 浅紫蓝色
+const COLOR_GREEN = '#22d3a5' // 蓝绿色
 
 const chartOption = computed<EChartsOption>(() => {
   const reversed  = [...props.data].reverse()
   const products  = reversed.map(d => d.product)
+  
   const sevenDay  = reversed.map(d => ({
     value: d.sevenDayAvgPrice,
     name: d.product,
-    itemStyle: getItemStyle(COLOR_BLUE, d.product),
-    label: {
-      color: (!props.selectedProduct || props.selectedProduct === d.product)
-        ? COLOR_BLUE : 'transparent',
-    },
+    itemStyle: { color: COLOR_BLUE, borderRadius: [0, 8, 8, 0] },
+    label: { color: COLOR_BLUE },
   }))
+  
   const today = reversed.map(d => ({
     value: d.todayAvgPrice,
     name: d.product,
-    itemStyle: getItemStyle(COLOR_GREEN, d.product),
-    label: {
-      color: (!props.selectedProduct || props.selectedProduct === d.product)
-        ? COLOR_GREEN : 'transparent',
-    },
+    itemStyle: { color: COLOR_GREEN, borderRadius: [0, 8, 8, 0] },
+    label: { color: COLOR_GREEN },
   }))
 
   return {
     legend: {
-      top: 8,
+      top: 0,
       left: 'center',
       icon: 'roundRect',
       itemWidth: 14,
       itemHeight: 10,
       itemGap: 24,
-      textStyle: { fontSize: 13, color: '#374151' },
+      textStyle: { fontSize: 14, color: '#64748b' }, // 字体颜色优化
       data: [
         { name: '七日平均价格', itemStyle: { color: COLOR_BLUE } },
         { name: '当日平均价格', itemStyle: { color: COLOR_GREEN } },
@@ -86,11 +66,10 @@ const chartOption = computed<EChartsOption>(() => {
       backgroundColor: '#fff',
       borderColor: '#e2e8f0',
       borderWidth: 1,
-      textStyle: { color: '#1e293b', fontSize: 13 },
+      textStyle: { color: '#1e293b', fontSize: 15 },
       formatter(params: any) {
         const p  = params[0]
         const p2 = params[1]
-        // 找到对应产品的偏差率
         const item = props.data.find(d => d.product === p.name)
         const rateHtml = item
           ? `<div style="margin-top:6px;color:${item.deviationRate <= -0.1 ? '#dc2626' : item.deviationRate < -0.05 ? '#d97706' : '#6b7280'}">
@@ -106,14 +85,15 @@ const chartOption = computed<EChartsOption>(() => {
       },
     },
 
-    grid: { top: 56, bottom: 12, left: 16, right: 72, containLabel: true },
+    // 加大 right 距离，为右侧文字留出展示空间
+    grid: { top: 40, bottom: 0, left: 16, right: 60, containLabel: true },
 
     xAxis: { type: 'value', show: false, splitLine: { show: false } },
 
     yAxis: {
       type: 'category',
       data: products,
-      axisLabel: { color: '#374151', fontSize: 13, margin: 12 },
+      axisLabel: { color: '#64748b', fontSize: 14, margin: 12 },
       axisTick: { show: false },
       axisLine: { show: false },
       splitLine: { show: false },
@@ -124,14 +104,14 @@ const chartOption = computed<EChartsOption>(() => {
         name: '七日平均价格',
         type: 'bar',
         data: sevenDay,
-        barCategoryGap: '42%',
-        barGap: '8%',
+        barCategoryGap: '35%', // 组间距
+        barGap: '15%',         // 组内两根柱子的间距
         label: {
           show: true,
           position: 'right',
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 600,
-          // 颜色在 data item 里单独控制
+          formatter: (params: any) => params.value?.toLocaleString('zh-CN') // 千分位带逗号
         },
       },
       {
@@ -141,8 +121,9 @@ const chartOption = computed<EChartsOption>(() => {
         label: {
           show: true,
           position: 'right',
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 600,
+          formatter: (params: any) => params.value?.toLocaleString('zh-CN') // 千分位带逗号
         },
       },
     ],
@@ -157,9 +138,9 @@ function initChart() {
 
 function resizeChart() { chartInstance?.resize() }
 
-// 监听数据或选中产品变化，重绘
+// 只监听 data 变化即可，去除了选中联动的重新渲染
 watch(
-  [() => props.data, () => props.selectedProduct],
+  () => props.data,
   () => {
     if (chartInstance) {
       chartInstance.setOption(chartOption.value, { notMerge: true })
@@ -174,7 +155,6 @@ onUnmounted(() => { window.removeEventListener('resize', resizeChart); chartInst
 
 <template>
   <div class="chart-wrap">
-    <!-- 选中产品时显示摘要信息 -->
     <Transition name="slide-fade">
       <div v-if="selectedProduct" class="selected-summary">
         <template v-for="item in data" :key="item.product">
@@ -220,7 +200,7 @@ onUnmounted(() => { window.removeEventListener('resize', resizeChart); chartInst
 
 .chart {
   width: 100%;
-  height: 420px;
+  height: 360px; /* 稍微加高一点以容纳间隙 */
 }
 
 /* 选中摘要条 */
@@ -233,14 +213,14 @@ onUnmounted(() => { window.removeEventListener('resize', resizeChart); chartInst
   border-radius: 8px;
   padding: 8px 14px;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: var(--fs-xs);
   flex-wrap: wrap;
 }
 
 .summary-product {
   font-weight: 700;
   color: #1e3a5f;
-  font-size: 14px;
+  font-size: var(--fs-sm);
 }
 .summary-divider { color: #cbd5e1; }
 .summary-label { color: #6b7280; }
@@ -249,7 +229,7 @@ onUnmounted(() => { window.removeEventListener('resize', resizeChart); chartInst
   padding: 2px 10px;
   border-radius: 20px;
   font-weight: 700;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 .badge-danger  { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
 .badge-warning { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }

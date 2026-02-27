@@ -58,13 +58,13 @@ function formatWan(val: number): string {
   flex-direction: column;
 }
 .card-label {
-  font-size: 22px;
+  font-size: var(--fs-sm);
   color: #14532d;
   font-weight: 500;
   margin-bottom: 8px;
 }
 .card-value {
-  font-size: 26px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   color: #16a34a;
   line-height: 1.2;
@@ -82,14 +82,14 @@ function formatWan(val: number): string {
   align-items: center;
   margin-bottom: 7px;
 }
-.rate-value { font-size: 16px; font-weight: 600; color: #16a34a; }
+.rate-value { font-size: var(--fs-xs); font-weight: 600; color: #16a34a; }
 .detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 6px;
 }
-.row-label { font-size: 16px; color: #166534; }
-.row-value { font-size: 16px; font-weight: 600; color: #14532d; }
+.row-label { font-size: var(--fs-xs); color: #166534; }
+.row-value { font-size: var(--fs-xs); font-weight: 600; color: #14532d; }
 .text-danger { color: #dc2626; }
 </style>
