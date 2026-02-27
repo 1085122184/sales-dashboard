@@ -1,0 +1,109 @@
+/* =============================
+   CSS 变量 & 全局样式
+   ============================= */
+:root {
+  /* 主色系 */
+  --color-primary: #3b82f6;
+  --color-primary-light: #60a5fa;
+  --color-primary-bg: #eff6ff;
+
+  /* 绿色系（回款） */
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-success-bg: #ecfdf5;
+
+  /* 警告色 */
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-purple: #a855f7;
+
+  /* 文字色 */
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+
+  /* 背景色 */
+  --color-bg-page: #eef2f7;
+  --color-bg-card: #ffffff;
+  --color-bg-header: #e8f0fe;
+
+  /* 边框 */
+  --color-border: #e2e8f0;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* 阴影 */
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 20px rgba(59, 130, 246, 0.12);
+
+  /* 字体 */
+  --font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: 15px;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* 数字使用等宽变体，避免数值跳动 */
+.number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 通用过渡 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #93c5fd, #60a5fa);
+  border-radius: 9999px;
+  border: 1px solid #f1f5f9;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #93c5fd #f1f5f9;
+}
