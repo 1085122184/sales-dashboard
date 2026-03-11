@@ -1,27 +1,25 @@
-/**
- * useSalesTrend.ts — 销售趋势数据 Composable
- *
- * 切换真实 API 同样只改一行 import：
- *   import { getSalesTrends as fetchSalesTrends } from '@/api'
- */
-import { ref, onMounted } from 'vue'
-import { fetchSalesTrends } from '@/mock/dashboard'   // ← 切换为真实 API 时替换这行
+import { ref, watch, type Ref } from 'vue'
+import { getSalesTrends as fetchSalesTrends } from '@/api/dashboard-api'
 import type { SalesTrendProduct } from '@/types'
 
-export function useSalesTrend() {
-  const trendLoading = ref(true)
-  const trends       = ref<SalesTrendProduct[]>([])
+// 🌟 接收外部传入的响应式日期
+export function useSalesTrend(queryDate: Ref<string>) {
+  const trends = ref<SalesTrendProduct[]>([])
   const selectedTrend = ref<SalesTrendProduct | null>(null)
+  const trendLoading = ref(true)
 
-  onMounted(async () => {
-    try {
-      trends.value = await fetchSalesTrends()
-      // 默认选中第一个产品
-      if (trends.value.length) selectedTrend.value = trends.value[0]
-    } finally {
-      trendLoading.value = false
-    }
-  })
+  async function loadData() {
+    trendLoading.value = true
+    try { 
+      // 🌟 传入日期拉取数据
+      trends.value = await fetchSalesTrends(queryDate.value) 
+    } 
+    catch (error) { console.error('获取量价趋势数据失败:', error) } 
+    finally { trendLoading.value = false }
+  }
 
-  return { trendLoading, trends, selectedTrend }
+  // 🌟 监听日期变化自动拉取
+  watch(queryDate, loadData, { immediate: true })
+
+  return { trends, selectedTrend, trendLoading, refresh: loadData }
 }

@@ -5,11 +5,11 @@ import type { SalesTrendProduct } from '@/types'
 
 const props = defineProps<{
   data: SalesTrendProduct[]
-  selectedProduct: string
+  selectedProduct?: string | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'select', product: string): void
+  (e: 'select', uniqueId: string | null): void
 }>()
 
 type Tab = 'all' | 'poor' | 'good'
@@ -20,6 +20,7 @@ type SortKey = 'default' | 'volume' | 'price' | 'correlation'
 const sortKey = ref<SortKey>('default')
 const sortAsc = ref(false)
 
+// 健康度计算逻辑
 function healthRating(p: SalesTrendProduct) {
   if (p.correlation >= 0.5 && p.volumeChange >= 0 && p.priceChange >= 0)
     return { label: '优', cls: 'he', rank: 0 }
@@ -40,11 +41,14 @@ const tabCounts = computed(() => ({
 
 const processedData = computed(() => {
   let list = [...props.data]
+  
+  // 1. 过滤
   const kw = searchText.value.trim().toLowerCase()
   if (kw) list = list.filter(d => d.product.toLowerCase().includes(kw))
   if (activeTab.value === 'poor') list = list.filter(p => healthRating(p).rank >= 2)
   if (activeTab.value === 'good') list = list.filter(p => healthRating(p).rank <= 1)
 
+  // 2. 排序
   list.sort((a, b) => {
     let diff = 0
     if      (sortKey.value === 'default')     diff = healthRating(a).rank - healthRating(b).rank
@@ -68,12 +72,17 @@ function si(key: SortKey) {
 
 function fmtPct(v: number) { return (v > 0 ? '+' : '') + (v * 100).toFixed(1) + '%' }
 function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
+
+// 🌟 核心修改：选中时发射 "编码-区域" 组合标识
+function handleRowClick(item: SalesTrendProduct) {
+  const uniqueId = `${item.productCode}-${item.region}`
+  emit('select', props.selectedProduct === uniqueId ? null : uniqueId)
+}
 </script>
 
 <template>
   <div class="panel">
 
-    <!-- 健康度摘要横幅 -->
     <div v-if="poorCount > 0" class="alert-banner">
       <svg class="banner-icon" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd"/>
@@ -83,7 +92,6 @@ function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
       <button class="banner-jump" @click="activeTab = 'poor'">仅看问题产品 →</button>
     </div>
 
-    <!-- 工具栏 -->
     <div class="toolbar">
       <div class="tab-group">
         <button v-for="tab in (['all','poor','good'] as Tab[])" :key="tab"
@@ -102,15 +110,14 @@ function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
       </div>
     </div>
 
-    <!-- 固定表头 -->
     <div class="thead-wrap">
       <table class="base-table">
         <colgroup>
-          <col style="width:14%"><col style="width:8%">
-          <col style="width:10%"><col style="width:10%">
-          <col style="width:12%"><col style="width:10%">
-          <col style="width:12%"><col style="width:14%">
-          <col style="width:10%">
+          <col style="width:16%"><col style="width:8%">
+          <col style="width:11%"><col style="width:10%">
+          <col style="width:13%"><col style="width:10%">
+          <col style="width:13%"><col style="width:10%">
+          <col style="width:9%">
         </colgroup>
         <thead>
           <tr>
@@ -134,7 +141,6 @@ function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
       </table>
     </div>
 
-    <!-- 虚拟滚动 -->
     <VirtualTable :rows="processedData" :row-height="52" :visible-count="7">
       <template #default="{ visibleRows }">
         <table class="base-table">
@@ -158,20 +164,25 @@ function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
             </tr>
             <tr
               v-for="{ row: item, index } in visibleRows"
-              :key="item.product"
+              :key="`${item.productCode}-${item.region}`"
               class="data-row"
               :style="{ height: '52px' }"
               :class="{
-                'row-active':  selectedProduct === item.product,
+                'row-active':  selectedProduct === `${item.productCode}-${item.region}`,
                 'row-stripe':  index % 2 === 1,
                 'row-poor':    healthRating(item).rank >= 2,
               }"
-              @click="emit('select', item.product)"
+              @click="handleRowClick(item)"
             >
               <td class="td-product">
                 <div class="prod-cell">
                   <span class="lvbar" :class="`lb-${healthRating(item).cls}`" />
-                  <span class="prod-name" :class="{ 'name-active': selectedProduct === item.product }">
+                  
+                  <span class="region-tag" :class="item.region === '国内' ? 'tag-dom' : 'tag-intl'">
+                    {{ item.region }}
+                  </span>
+
+                  <span class="prod-name" :class="{ 'name-active': selectedProduct === `${item.productCode}-${item.region}` }">
                     {{ item.product }}
                   </span>
                 </div>
@@ -200,16 +211,16 @@ function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
                   {{ item.correlation > 0 ? '+' : '' }}{{ item.correlation }}
                 </span>
               </td>
-              <!-- 内联迷你折线（SVG sparkline） -->
               <td class="td-c">
                 <svg class="sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
                   <polyline
-                    :points="item.trend.map((p, i) => {
-                      const minV = Math.min(...item.trend.map(t => t.volume))
-                      const maxV = Math.max(...item.trend.map(t => t.volume))
-                      const x = i / (item.trend.length - 1) * 58 + 1
-                      const y = maxV === minV ? 12 : 22 - (p.volume - minV) / (maxV - minV) * 20
-                      return `${x},${y}`
+                    :points="(item.trend || []).map((p, i) => {
+                      if (!item.trend || item.trend.length === 0) return '0,0';
+                      const minV = Math.min(...item.trend.map(t => t.volume));
+                      const maxV = Math.max(...item.trend.map(t => t.volume));
+                      const x = i / (item.trend.length - 1) * 58 + 1;
+                      const y = maxV === minV ? 12 : 22 - (p.volume - minV) / (maxV - minV) * 20;
+                      return `${x},${y}`;
                     }).join(' ')"
                     fill="none"
                     :stroke="healthRating(item).rank <= 1 ? '#3b82f6' : '#d97706'"
@@ -230,7 +241,6 @@ function cc(v: number) { return v > 0.02 ? 'up' : v < -0.02 ? 'down' : 'flat' }
       </template>
     </VirtualTable>
 
-    <!-- 状态栏 -->
     <div class="status-bar">
       <span class="s-count">显示 <b>{{ processedData.length }}</b> / <b>{{ data.length }}</b> 条</span>
       <span class="s-hint">↑↓ 滚动浏览 · 点击行切换趋势图</span>
@@ -310,6 +320,11 @@ th i { font-style: normal; margin-left: 2px; font-size: var(--fs-xs); opacity: .
 .lb-hp { background: #dc2626; }
 .prod-name { font-weight: 500; color: #374151; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .name-active { font-weight: 700; color: #1d4ed8; }
+
+/* 🌟 区域标签样式 */
+.region-tag { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; line-height: 1.1; flex-shrink: 0; }
+.tag-dom { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.tag-intl { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
 
 .td-c { text-align: center; }
 .muted { color: #9ca3af; font-size: var(--fs-xs); }

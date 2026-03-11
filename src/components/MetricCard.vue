@@ -62,7 +62,7 @@ const colorMap = {
       </div>
       <ProgressBar :value="data.budgetRatio" :height="7" :color="colorMap[variant].bar" />
       <div class="detail-row">
-        <span class="row-label">目标差距</span>
+        <span class="row-label">本月累计</span>
         <span
           class="row-value number"
           :class="data.gapColor === 'red' ? 'text-danger' : 'text-success'"

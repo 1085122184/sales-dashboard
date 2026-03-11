@@ -8,7 +8,7 @@ defineProps<{
 
 function formatWan(val: number): string {
   const abs = Math.abs(val)
-  return (val < 0 ? '-' : '') + abs.toLocaleString('zh-CN') + '.00 万'
+  return (val < 0 ? '-' : '') + abs.toLocaleString('zh-CN') + ' 万'
 }
 </script>
 
@@ -30,8 +30,8 @@ function formatWan(val: number): string {
         <span class="row-value number text-danger">{{ formatWan(data.targetGap) }}</span>
       </div>
       <div class="detail-row">
-        <span class="row-label">本月目标</span>
-        <span class="row-value number">{{ data.monthTarget.toLocaleString('zh-CN') }}.00 万</span>
+        <span class="row-label">本月销售额</span>
+        <span class="row-value number">{{ data.monthTarget.toLocaleString('zh-CN') }} 万</span>
       </div>
     </div>
   </div>

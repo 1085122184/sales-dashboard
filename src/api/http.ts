@@ -5,14 +5,15 @@
  *
  * 职责：统一处理请求基础配置、Token 注入、响应拦截、错误提示
  *
- * 📌 修改 baseURL 的三种方式：
- *   1. 直接修改下方 BASE_URL 常量（最简单）
- *   2. 在项目根目录 .env.production 中写 VITE_API_BASE_URL=https://api.example.com
- *   3. 通过 vite.config.ts 的 proxy 配置代理到后台（开发阶段推荐）
+ * 📌 【Nginx 部署架构下的 baseURL 规范】
+ * 无论开发还是生产，baseURL 都应保持为相对路径前缀（如 '/api'）。
+ * - 开发环境：通过 vite.config.ts 的 proxy 拦截 '/api' 转发给本地后端。
+ * - 生产环境：通过 Nginx 的 location /api/ 拦截转发给 Docker 内的后端容器。
+ * ⚠️ 严禁在此处或 .env 中配置完整的带 http:// 的绝对路径，否则会引发跨域！
  * ============================================================
  */
 
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, { type AxiosResponse } from 'axios'
 
 // ─── 基础配置 ─────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'

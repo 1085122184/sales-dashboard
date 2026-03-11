@@ -7,5 +7,5 @@
  * ============================================================
  */
 
-export * from './dashboard'
+export * from './dashboard-api'
 export { default as http } from './http'

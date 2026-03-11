@@ -8,19 +8,27 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    name: 'ExecutiveDashboard',
+    name: 'BusinessDashboard',
     // 采用路由懒加载（按需加载），提升首页首屏渲染速度
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { 
+      title: '业务明细大屏' 
+    }
+  },
+  {
+    path: '/v1',
+    name: 'ExecutiveDashboard',
     component: () => import('@/views/ExecutiveDashboardView.vue'),
     meta: { 
       title: '集团高管指挥舱' 
     }
   },
   {
-    path: '/v1',
-    name: 'BusinessDashboard',
-    component: () => import('@/views/DashboardView.vue'),
+    path: '/v2',
+    name: 'AnomalyMonitorView',
+    component: () => import('@/views/AnomalyMonitorView.vue'),
     meta: { 
-      title: '业务明细大屏' 
+      title: '异常监控指挥舱' 
     }
   }
   // 未来您可以在这里继续添加二级页面，例如：
