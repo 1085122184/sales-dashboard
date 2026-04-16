@@ -2,9 +2,7 @@
 import ProgressBar from './ProgressBar.vue'
 import type { CollectionMetric } from '@/types'
 
-defineProps<{
-  data: CollectionMetric
-}>()
+defineProps<{ data: CollectionMetric }>()
 
 function formatWan(val: number): string {
   const abs = Math.abs(val)
@@ -15,7 +13,7 @@ function formatWan(val: number): string {
 <template>
   <div class="collection-card">
     <div class="card-top">
-      <div class="card-label">回款金额</div>
+      <div class="card-label">回款金额（日）</div>
       <div class="card-value number">{{ data.amount }}</div>
     </div>
     <div class="card-bottom">
@@ -29,10 +27,10 @@ function formatWan(val: number): string {
         <span class="row-label">目标差距</span>
         <span class="row-value number text-danger">{{ formatWan(data.targetGap) }}</span>
       </div>
-      <div class="detail-row">
+      <!-- <div class="detail-row">
         <span class="row-label">本月销售额</span>
         <span class="row-value number">{{ data.monthTarget.toLocaleString('zh-CN') }} 万</span>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -44,52 +42,24 @@ function formatWan(val: number): string {
   padding: 18px 20px 16px;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  box-sizing: border-box;
+  display: flex; flex-direction: column; height: 100%; box-sizing: border-box;
   border: 1px solid #bbf7d0;
 }
 .collection-card:hover { box-shadow: 0 4px 20px rgba(22,163,74,0.14); }
 
-.card-top {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.card-label {
-  font-size: var(--fs-sm);
-  color: #14532d;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-.card-value {
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  color: #16a34a;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
+.card-top { flex: 1; display: flex; flex-direction: column; }
+.card-label { font-size: var(--fs-sm); color: #14532d; font-weight: 500; margin-bottom: 8px; }
+.card-value { font-size: var(--fs-xl); font-weight: 700; color: #16a34a; line-height: 1.2; letter-spacing: -0.02em; }
 .card-bottom { flex-shrink: 0; }
-.divider {
-  height: 1px;
-  background: #bbf7d0;
-  margin: 12px 0 10px;
-}
-.rate-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 7px;
-}
+.divider { height: 1px; background: #bbf7d0; margin: 12px 0 10px; }
+.rate-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
 .rate-value { font-size: var(--fs-xs); font-weight: 600; color: #16a34a; }
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-}
+.detail-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
 .row-label { font-size: var(--fs-xs); color: #166534; }
 .row-value { font-size: var(--fs-xs); font-weight: 600; color: #14532d; }
 .text-danger { color: #dc2626; }
+
+@media (max-width: 767px) {
+  .collection-card { padding: 14px 14px 12px; }
+}
 </style>

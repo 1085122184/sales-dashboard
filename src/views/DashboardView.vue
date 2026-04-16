@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router' 
+import dayjs from 'dayjs'
 import { useDashboard } from '@/composables/useDashboard'
 import { useSalesTrend } from '@/composables/useSalesTrend'
 import SectionTitle from '@/components/SectionTitle.vue'
@@ -12,8 +14,9 @@ import SalesTrendChart from '@/components/SalesTrendChart.vue'
 import SalesTrendTable from '@/components/SalesTrendTable.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 
-
-const queryDate = ref(new Date().toISOString().split('T')[0])
+const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
+const queryDate = ref(yesterday)
+const backendDateStr = dayjs(queryDate.value).add(1, 'day').format('YYYY-MM-DD')
 const {
   metricsLoading, ordersLoading, deviationsLoading, isAnyLoading,
   error, salesVolume, salesAmount, collection, monthOrders, yearOrders,
@@ -21,21 +24,19 @@ const {
 } = useDashboard(queryDate)
 
 const { trendLoading, trends, selectedTrend, refresh: refreshTrends } = useSalesTrend(queryDate)
-function refreshAll() {
-  refreshDashboard()
-  refreshTrends()
+
+const router = useRouter()
+function goToSalesDetail(type: 'volume' | 'amount', title: string) {
+  const cleanTitle = title.replace(/（日）|\(日\)/g, '')
+  router.push({ path: '/details/sales', query: { type, cleanTitle, date: backendDateStr } })
 }
+function refreshAll() { refreshDashboard(); refreshTrends() }
+
 const selectedProduct = ref<string | null>(null)
 const filteredPriceDeviations = ref<any[]>([])
 
-
-function handleProductSelect(uniqueId: string | null) {
-  selectedProduct.value = uniqueId
-}
-function handleDeviationFilter(filteredData: any[]) {
-  filteredPriceDeviations.value = filteredData
-}
-
+function handleProductSelect(uniqueId: string | null) { selectedProduct.value = uniqueId }
+function handleDeviationFilter(filteredData: any[]) { filteredPriceDeviations.value = filteredData }
 function handleTrendSelect(uniqueId: string | null) {
   if (!uniqueId) { selectedTrend.value = null; return }
   const t = trends.value.find(x => `${x.productCode}-${x.region}` === uniqueId)
@@ -45,18 +46,18 @@ function handleTrendSelect(uniqueId: string | null) {
 
 <template>
   <div class="dashboard">
+
+    <!-- ── Header ── -->
     <section class="section section-header">
       <div class="header-card">
         <div class="header-left">
           <div class="header-accent" />
-          <h1 class="header-title">业务指标明细大盘</h1>
+          <h1 class="header-title">销售指标大盘</h1>
         </div>
-        
         <div class="header-right">
           <div class="date-picker-wrap">
-            <input type="date" v-model="queryDate" class="date-input" title="选择业务日期" />
+            <input type="date" v-model="queryDate" :max="yesterday" class="date-input" title="选择业务日期" />
           </div>
-          
           <button class="refresh-btn" :disabled="isAnyLoading" @click="refreshAll">
             <svg class="icon" :class="{ spinning: isAnyLoading }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -68,6 +69,7 @@ function handleTrendSelect(uniqueId: string | null) {
       </div>
     </section>
 
+    <!-- ── 错误提示 ── -->
     <Transition name="fade">
       <div v-if="error" class="error-bar">
         <span>⚠️ {{ error }}</span>
@@ -75,13 +77,14 @@ function handleTrendSelect(uniqueId: string | null) {
       </div>
     </Transition>
 
+    <!-- ── 指标卡区 ── -->
     <section class="section">
       <div class="metrics-grid">
         <LoadingSkeleton v-if="metricsLoading" height="100%" border-radius="14px" class="skel-cell" />
-        <MetricCard v-else-if="salesVolume" :data="salesVolume" />
+        <MetricCard v-else-if="salesVolume" :data="salesVolume" clickable @card-click="goToSalesDetail('volume', salesVolume.label)" />
 
         <LoadingSkeleton v-if="metricsLoading" height="100%" border-radius="14px" class="skel-cell" />
-        <MetricCard v-else-if="salesAmount" :data="salesAmount" variant="purple" />
+        <MetricCard v-else-if="salesAmount" :data="salesAmount" variant="purple" clickable @card-click="goToSalesDetail('amount', salesAmount.label)" />
 
         <LoadingSkeleton v-if="metricsLoading" height="100%" border-radius="14px" class="skel-cell" />
         <CollectionCard v-else-if="collection" :data="collection" />
@@ -99,10 +102,11 @@ function handleTrendSelect(uniqueId: string | null) {
       </div>
     </section>
 
+    <!-- ── 价格偏差追踪 ── -->
     <section class="section">
       <SectionTitle title="价格偏差追踪" />
-      <div class="deviation-grid">
-        <div class="deviation-cell chart-cell">
+      <div class="panel-grid">
+        <div class="panel-chart-cell">
           <LoadingSkeleton v-if="deviationsLoading" height="420px" border-radius="10px" />
           <PriceDeviationChart
             v-else
@@ -111,7 +115,8 @@ function handleTrendSelect(uniqueId: string | null) {
             @clear-selection="selectedProduct = null"
           />
         </div>
-        <div class="deviation-cell table-cell">
+        <div class="panel-divider" />
+        <div class="panel-table-cell">
           <LoadingSkeleton v-if="deviationsLoading" height="420px" border-radius="10px" />
           <div v-else class="table-scroll-wrap">
             <PriceDeviationTable
@@ -125,91 +130,190 @@ function handleTrendSelect(uniqueId: string | null) {
       </div>
     </section>
 
-<section class="section">
-  <SectionTitle title="量价趋势分析" />
-  <div class="trend-grid">
-  <div class="trend-chart-cell">
-    <LoadingSkeleton v-if="trendLoading" height="420px" border-radius="10px" />
-    <SalesTrendChart
-      v-else
-      :data="trends"
-      :selected-product="selectedTrend ? `${selectedTrend.productCode}-${selectedTrend.region}` : null"
-      @clear-selection="handleTrendSelect(null)"
-    />
-  </div>
-    <div class="trend-table-cell">
-    <LoadingSkeleton v-if="trendLoading" height="420px" border-radius="10px" />
-    <div v-else class="table-scroll-wrap">
-      <SalesTrendTable
-        :data="trends"
-        :selected-product="selectedTrend ? `${selectedTrend.productCode}-${selectedTrend.region}` : ''"
-        @select="handleTrendSelect"
-      />
-    </div>
-  </div>
-</div>
-</section>
+    <!-- ── 量价趋势分析 ── -->
+    <section class="section">
+      <SectionTitle title="量价趋势分析" />
+      <div class="panel-grid">
+        <div class="panel-chart-cell">
+          <LoadingSkeleton v-if="trendLoading" height="420px" border-radius="10px" />
+          <SalesTrendChart
+            v-else
+            :data="trends"
+            :selected-product="selectedTrend ? `${selectedTrend.productCode}-${selectedTrend.region}` : null"
+            @clear-selection="handleTrendSelect(null)"
+          />
+        </div>
+        <div class="panel-divider" />
+        <div class="panel-table-cell">
+          <LoadingSkeleton v-if="trendLoading" height="420px" border-radius="10px" />
+          <div v-else class="table-scroll-wrap">
+            <SalesTrendTable
+              :data="trends"
+              :selected-product="selectedTrend ? `${selectedTrend.productCode}-${selectedTrend.region}` : ''"
+              @select="handleTrendSelect"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </template>
 
 <style scoped>
+/* ── 基础 ── */
 .dashboard { min-height: 100vh; background: var(--color-bg-page); padding-bottom: 40px; }
 .section { padding: 16px 24px 0; }
 .section-header { padding-top: 20px; }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-.header-card { background: linear-gradient(120deg, #dbeafe 0%, #eff6ff 55%, #e0f2fe 100%); border-radius: var(--radius-lg); padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-card); border: 1px solid #bfdbfe; }
+
+/* ── Header ── */
+.header-card {
+  background: linear-gradient(120deg, #dbeafe 0%, #eff6ff 55%, #e0f2fe 100%);
+  border-radius: var(--radius-lg); padding: 16px 22px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  box-shadow: var(--shadow-card); border: 1px solid #bfdbfe;
+}
 .header-left { display: flex; align-items: center; gap: 12px; }
 .header-accent { width: 4px; height: 20px; background: linear-gradient(180deg, #60a5fa 0%, #1d4ed8 100%); border-radius: 2px; flex-shrink: 0; }
 .header-title { font-size: var(--fs-md); font-weight: 700; color: #1e3a5f; letter-spacing: 0.03em; margin: 0; }
-.refresh-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: rgba(255,255,255,0.7); color: #2563eb; border: 1px solid #93c5fd; border-radius: var(--radius-sm); font-size: var(--fs-xs); font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-family: var(--font-family); white-space: nowrap; }
+.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.date-picker-wrap { display: flex; align-items: center; }
+.date-input {
+  padding: 7px 12px; border: 1px solid #93c5fd; border-radius: var(--radius-sm);
+  color: #1e3a5f; background-color: rgba(255,255,255,0.8); outline: none;
+  font-family: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.date-input:hover, .date-input:focus { border-color: #2563eb; background-color: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.date-input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: 0.2s; }
+.date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+.refresh-btn {
+  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+  background: rgba(255,255,255,0.7); color: #2563eb; border: 1px solid #93c5fd;
+  border-radius: var(--radius-sm); font-size: var(--fs-xs); font-weight: 600;
+  cursor: pointer; transition: all 0.15s ease; font-family: var(--font-family); white-space: nowrap;
+}
 .refresh-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
 .refresh-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .icon { width: 15px; height: 15px; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 1s linear infinite; }
-.error-bar { background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); margin: 14px 24px 0; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-xs); color: var(--color-danger); }
-.metrics-grid { display: grid; grid-template-columns: 1.2fr 1.2fr 1.2fr 1fr; gap: 16px; align-items: stretch; }
+
+/* ── 错误条 ── */
+.error-bar {
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md);
+  margin: 14px 24px 0; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: var(--fs-xs); color: var(--color-danger);
+}
+
+/* ── 指标卡网格（桌面：4列） ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1.2fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
 .skel-cell { min-height: 180px; }
 .order-col { display: flex; flex-direction: column; justify-content: space-between; gap: 12px; height: 100%; }
-.deviation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; background: var(--color-bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
-.deviation-cell { min-width: 0; }
-.deviation-cell.chart-cell { padding: 20px 24px; border-right: 1px solid #f1f5f9; }
-.deviation-cell.table-cell { padding: 20px 0; }
-.trend-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0; background: var(--color-bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
-.trend-chart-cell { min-width: 0; padding: 20px 24px; border-right: 1px solid #f1f5f9; }
-.trend-table-cell { min-width: 0; padding: 20px 0; }
-.table-scroll-wrap { width: 100%; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+/* ── 图表+表格双栏面板 ── */
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;   /* 图表 | 竖线 | 表格 */
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.panel-chart-cell { padding: 20px 24px; min-width: 0; }
+.panel-divider    { background: #f1f5f9; }           /* 竖向分隔线 */
+.panel-table-cell { padding: 20px 0; min-width: 0; }
+
+.table-scroll-wrap {
+  width: 100%; overflow-x: auto;
+  scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+}
 .table-scroll-wrap::-webkit-scrollbar { height: 6px; }
 .table-scroll-wrap::-webkit-scrollbar-track { background: transparent; }
 .table-scroll-wrap::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-.table-scroll-wrap > * { min-width: 680px; }
-@media (max-width: 1200px) { .metrics-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; } .metrics-grid > :nth-child(3) { grid-column: 1 / 2; } .order-col { grid-column: 2 / 3; grid-row: 2 / 3; flex-direction: row; height: auto; } }
-@media (max-width: 960px) { .deviation-grid, .trend-grid { grid-template-columns: 1fr; } .deviation-cell.chart-cell, .trend-chart-cell { border-right: none; border-bottom: 1px solid #f1f5f9; } }
-@media (max-width: 768px) { .section { padding: 14px 16px 0; } .metrics-grid { grid-template-columns: 1fr; } .metrics-grid > :nth-child(3), .order-col { grid-column: auto; grid-row: auto; } .order-col { flex-direction: row; height: auto; gap: 12px; } }
-@media (max-width: 480px) { .order-col { flex-direction: column; } }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.date-picker-wrap { display: flex; align-items: center; }
-.date-input {
-  padding: 7px 12px;
-  border: 1px solid #93c5fd;
-  border-radius: var(--radius-sm);
-  color: #1e3a5f;
-  background-color: rgba(255, 255, 255, 0.8);
-  outline: none;
-  font-family: inherit;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.date-input:hover, .date-input:focus {
-  border-color: #2563eb;
-  background-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-/* 隐藏原生日期输入框的默认轮廓，让它看起来更 SaaS 化 */
-.date-input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: 0.2s; }
-.date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+.table-scroll-wrap > * { min-width: 600px; }
 
+/* ============================================================
+   平板端（1024px ~ 1199px）：指标卡改为 2 列
+   ============================================================ */
+@media (max-width: 1199px) {
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  /* 订单组改为横向并排，占满右列 */
+  .order-col {
+    flex-direction: row;
+    height: auto;
+  }
+}
+
+/* ============================================================
+   平板端（< 1024px）：图表+表格改为单列堆叠
+   ============================================================ */
+@media (max-width: 1023px) {
+  .section { padding: 12px 16px 0; }
+  .section-header { padding-top: 14px; }
+
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
+  .panel-divider {
+    height: 1px;    /* 横向分隔线 */
+    width: auto;
+  }
+  .panel-chart-cell { padding: 16px 18px; }
+  .panel-table-cell { padding: 12px 0; }
+}
+
+/* ============================================================
+   手机端（< 768px）
+   ============================================================ */
+@media (max-width: 767px) {
+  .section { padding: 10px 12px 0; }
+  .section-header { padding-top: 12px; }
+  .dashboard { padding-bottom: 24px; }
+
+  .header-card  { padding: 12px 14px; }
+  .error-bar    { margin: 10px 12px 0; }
+
+  /* 手机端隐藏"实时同步"文字，只保留刷新图标 */
+  .refresh-label { display: none; }
+  .refresh-btn { padding: 8px 10px; }
+
+  /* 指标卡：前 3 格各占半行，order-col 独占整行 */
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  /* 回款卡独占一整行 */
+  .metrics-grid > :nth-child(3) { grid-column: 1 / -1; }
+  /* 订单组独占一整行，两卡横排 */
+  .order-col {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    height: auto;
+    gap: 10px;
+  }
+  .skel-cell { min-height: 140px; }
+
+  .panel-chart-cell { padding: 12px 12px; }
+}
+
+/* ============================================================
+   超小屏（< 420px）：全单列
+   ============================================================ */
+@media (max-width: 420px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+  .metrics-grid > :nth-child(3) { grid-column: auto; }
+  .order-col { flex-direction: column; }
+}
 </style>

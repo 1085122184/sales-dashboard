@@ -1,14 +1,18 @@
 // src/types/index.ts
 
 
+export interface CompanySummaryMetric {
+  companyName: string
+  value: number
+  target: number
+  ratioText: string
+  isAlert: boolean
+  trend: number[]
+}
 
-
-export interface CompanyMetricDetail {
-  companyName: string  // 公司名称
-  value: number        // 实际完成值
-  target: number       // 目标值
-  ratioText: string    // 达成率百分比文本
-  isAlert?: boolean    // 是否标红预警
+export interface CompanyDetailData {
+  products: { productName: string; value: number; percentage: number }[]
+  dailySales: number[]
 }
 // =====================
 // 销售指标相关类型
@@ -21,9 +25,11 @@ export interface SalesMetric {
   targetGap: number
   monthTarget: number
   gapColor?: 'red' | 'green'
+  type?: 'volume' | 'amount'
 }
 
 export interface CollectionMetric {
+  label: string
   amount: string
   rate: number
   rateText: string

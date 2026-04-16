@@ -30,6 +30,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { 
       title: '异常监控指挥舱' 
     }
+  },
+  {
+    path: '/details/sales',
+    name: 'SalesDetail',
+    component: () => import('@/views/SalesDetailView.vue'),
+    meta: { title: '各公司销售明细' }
   }
   // 未来您可以在这里继续添加二级页面，例如：
   // {
@@ -52,7 +58,7 @@ const router = createRouter({
 })
 
 // 3. 全局前置路由守卫：用于动态修改网页标题
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   if (to.meta.title) {
     document.title = `${to.meta.title} - 销售系统`
   }

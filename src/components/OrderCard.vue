@@ -2,9 +2,7 @@
 import ProgressBar from './ProgressBar.vue'
 import type { OrderMetric } from '@/types'
 
-defineProps<{
-  data: OrderMetric
-}>()
+defineProps<{ data: OrderMetric }>()
 </script>
 
 <template>
@@ -28,34 +26,20 @@ defineProps<{
   padding: 16px 20px 14px;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   border: 1px solid #f0f4f8;
-  flex: 1;
-  box-sizing: border-box;
+  flex: 1; box-sizing: border-box;
 }
 .order-card:hover { box-shadow: var(--shadow-card-hover); }
 
-.card-label {
-  font-size: var(--fs-sm);
-  color: #374151;
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-.card-count {
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  color: #111827;
-  line-height: 1.1;
-  flex: 1;
-}
+.card-label { font-size: var(--fs-sm); color: #374151; font-weight: 500; margin-bottom: 4px; }
+.card-count  { font-size: var(--fs-2xl); font-weight: 700; color: #111827; line-height: 1.1; flex: 1; }
 .card-bottom { flex-shrink: 0; }
-.ratio-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
+.ratio-row   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .ratio-label { font-size: var(--fs-xs); color: #6b7280; }
 .ratio-value { font-size: var(--fs-xs); font-weight: 500; color: #6b7280; }
+
+@media (max-width: 767px) {
+  .order-card { padding: 12px 14px 10px; }
+}
 </style>

@@ -7,7 +7,9 @@ import type {
   OrderMetric,
   PriceDeviationItem,
   PriceDeviationDetail,
-  SalesTrendProduct
+  SalesTrendProduct,
+  CompanySummaryMetric,
+  CompanyDetailData
 } from '@/types'
 
 // ─── 后台原始数据结构（DTO） ──────────
@@ -128,7 +130,34 @@ export async function getPriceDeviationDetails(code: string, region: string, dat
 export async function getSalesTrends(date?: string): Promise<SalesTrendProduct[]> {
   const res = await http.get<any, ApiResponse<any[]>>('/dashboard/trends', { params: { date } })
   return res.data.map(raw => ({
-    productCode: raw.productCode, product: raw.productName, region: raw.region || '未知',
+    productCode: raw.productCode, product: raw.product, region: raw.region || '未知',
     latestDate: raw.latestDate, latestVolume: raw.latestVolume, latestPrice: raw.latestPrice, volumeChange: raw.volumeChange, priceChange: raw.priceChange, correlation: raw.correlation, trend: raw.trend
   }))
+}
+
+/** 6. 获取左侧公司概要列表 */
+export async function getSalesCompanies(type: string, date: string): Promise<CompanySummaryMetric[]> {
+  const res = await http.get<any, ApiResponse<CompanySummaryMetric[]>>('/dashboard/sales-companies', {
+    params: { type, date }
+  })
+  return res.data
+}
+
+// /** 7. 获取单个公司图表深度明细 */
+// export async function getSalesCompanyDetail(companyName: string, type: string, date: string): Promise<CompanyDetailData> {
+//   const res = await http.get<any, ApiResponse<CompanyDetailData>>('/dashboard/sales-company-detail', {
+//     params: { companyName, type, date }
+//   })
+//   return res.data
+// }
+
+/** 7. 获取单个公司图表深度明细 */
+export async function getSalesCompanyDetail(companyName: string, type: string, date: string, target: number): Promise<CompanyDetailData> {
+  const res = await http.get<any, ApiResponse<CompanyDetailData[]>>('/dashboard/sales-company-detail', {
+    // 🌟 修改点：将 target 加入到请求参数中，后端可以通过 ?target=xxx 接收
+    params: { companyName, type, date, target }
+  })
+  
+  const detailData = res.data && res.data.length > 0 ? res.data[0] : null
+  return detailData || { products: [], dailySales: [] }
 }

@@ -1,4 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
+import dayjs from 'dayjs'
 import { getSalesTrends as fetchSalesTrends } from '@/api/dashboard-api'
 import type { SalesTrendProduct } from '@/types'
 
@@ -11,8 +12,9 @@ export function useSalesTrend(queryDate: Ref<string>) {
   async function loadData() {
     trendLoading.value = true
     try { 
+      const backendDateStr = dayjs(queryDate.value).add(1, 'day').format('YYYY-MM-DD')
       // 🌟 传入日期拉取数据
-      trends.value = await fetchSalesTrends(queryDate.value) 
+      trends.value = await fetchSalesTrends(backendDateStr) 
     } 
     catch (error) { console.error('获取量价趋势数据失败:', error) } 
     finally { trendLoading.value = false }
