@@ -5,36 +5,17 @@ import {
   getExpenseCompanyComparison,
   getExpenseStructure,
   getExpenseTrend,
-  getExpenseCompanyDetail
+  getExpenseCompanyDetail,
+  getExpenseDailyDetail // 引入按天查询的API
 } from '@/api/expense-api'
 
 // ==================== 类型定义 ====================
 
 export interface ExpenseOverview {
-  totalExpense: {
-    amount: number
-    unit: string
-    yoyChange: number
-    yoyChangeText: string
-  }
-  salesExpense: {
-    amount: number
-    unit: string
-    percent: number
-    yoyChange: number
-  }
-  managementExpense: {
-    amount: number
-    unit: string
-    percent: number
-    yoyChange: number
-  }
-  financeExpense: {
-    amount: number
-    unit: string
-    percent: number
-    yoyChange: number
-  }
+  totalExpense: { amount: number; unit: string; yoyChange: number; yoyChangeText: string }
+  salesExpense: { amount: number; unit: string; percent: number; yoyChange: number }
+  managementExpense: { amount: number; unit: string; percent: number; yoyChange: number }
+  financeExpense: { amount: number; unit: string; percent: number; yoyChange: number }
 }
 
 export interface CompanyExpense {
@@ -71,11 +52,15 @@ export interface CompanyDetailList {
 export function useExpenseExecutive() {
   const store = useGlobalStore()
 
+  
   const overviewLoading = ref(true)
   const comparisonLoading = ref(true)
   const structureLoading = ref(true)
   const trendLoading = ref(true)
   const detailLoading = ref(true)
+  
+  // 新增：弹窗日明细加载状态
+  const dailyDetailLoading = ref(false)
   const error = ref<string | null>(null)
 
   const isAnyLoading = computed(() =>
@@ -88,8 +73,12 @@ export function useExpenseExecutive() {
   const expenseStructure = ref<ExpenseStructure[]>([])
   const expenseTrend = ref<ExpenseTrend | null>(null)
   const companyDetail = ref<CompanyDetailList>({ list: [], total: 0, page: 1, pageSize: 10 })
+  
+  // 新增：存放弹窗里的日明细数据
+  const dailyDetailList = ref<any[]>([])
 
-  // 搜索和分页
+  // 搜索、筛选和分页
+  const detailMonth = ref(store.backendDateStr ? store.backendDateStr.slice(0, 7) : new Date().toISOString().slice(0, 7)) // 列表的月份筛选
   const searchKeyword = ref('')
   const currentPage = ref(1)
   const pageSize = ref(10)
@@ -151,12 +140,13 @@ export function useExpenseExecutive() {
     }
   }
 
-  /** 加载公司明细列表 */
+  /** 加载公司明细列表 (按月份) */
   async function loadCompanyDetail() {
     detailLoading.value = true
     try {
+      const queryDate = `${detailMonth.value}-01` // 使用局部月份而不是全局日期
       const data = await getExpenseCompanyDetail({
-        date: store.backendDateStr,
+        date: queryDate,
         keyword: searchKeyword.value || undefined,
         page: currentPage.value,
         pageSize: pageSize.value
@@ -169,6 +159,26 @@ export function useExpenseExecutive() {
       detailLoading.value = false
     }
   }
+
+  /** 加载特定公司按天的明细 (用于弹窗) */
+ async function loadDailyDetail(companyName: string, date: string) {
+  dailyDetailLoading.value = true;
+  try {
+    const rawData = await getExpenseDailyDetail({ companyName, date });
+    
+    dailyDetailList.value = (rawData || []).map((item: any) => ({
+      COMPANY_NAME: item.companyName, // 兼容小驼峰
+      TYPES: item.types,
+      AMOUNT: item.amount,
+      TEXT: item.text
+    }));
+  } catch (e: any) {
+    console.error('获取日明细失败:', e);
+    dailyDetailList.value = [];
+  } finally {
+    dailyDetailLoading.value = false;
+  }
+}
 
   /** 刷新所有数据 */
   function refreshAll() {
@@ -192,10 +202,25 @@ export function useExpenseExecutive() {
     loadCompanyDetail()
   }
 
-  // 🌟 监听日期变化自动刷新数据
-  watch(() => store.backendDateStr, () => {
-    refreshAll()
+  // 监听全局日期变化：同步更新 detailMonth，并刷新所有
+  watch(() => store.backendDateStr, (newDate) => {
+    if (newDate) {
+      const newMonth = newDate.slice(0, 7)
+      // 只有当月份确实发生变化时才赋值，避免死循环
+      if (detailMonth.value !== newMonth) {
+        detailMonth.value = newMonth
+      }
+      refreshAll()
+    }
   }, { immediate: true })
+
+  // 监听月份变化，独立刷新列表数据
+  watch(detailMonth, (newVal) => {
+    if (newVal) {
+      currentPage.value = 1
+      refreshAll()
+    }
+  })
 
   return {
     // 加载状态
@@ -204,6 +229,7 @@ export function useExpenseExecutive() {
     structureLoading,
     trendLoading,
     detailLoading,
+    dailyDetailLoading,
     isAnyLoading,
     error,
 
@@ -213,8 +239,10 @@ export function useExpenseExecutive() {
     expenseStructure,
     expenseTrend,
     companyDetail,
+    dailyDetailList,
 
     // 搜索和分页
+    detailMonth,
     searchKeyword,
     currentPage,
     pageSize,
@@ -227,6 +255,7 @@ export function useExpenseExecutive() {
     loadComparison,
     loadStructure,
     loadTrend,
-    loadCompanyDetail
+    loadCompanyDetail,
+    loadDailyDetail
   }
 }

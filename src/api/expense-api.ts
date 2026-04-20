@@ -39,3 +39,30 @@ export async function getExpenseCompanyDetail(params?: {
   const res = await http.get<any, ApiResponse<any>>('/expense/company-detail', { params })
   return res.data || { list: [], total: 0, page: 1, pageSize: 10 }
 }
+
+
+export interface ExpenseDailyDetailParams {
+  companyName: string
+  date: string // 格式: YYYY-MM-DD
+}
+
+export interface ExpenseDailyDetailRecord {
+  COMPANY_NAME: string
+  TYPES: string
+  AMOUNT: number
+  TEXT: string
+}
+
+/**
+ * 获取指定公司某天的三费明细台账
+ * @param params { companyName, date }
+ */
+export function getExpenseDailyDetail(params: ExpenseDailyDetailParams) {
+  // 注意：这里需要通过 .then(res => res.data) 来提取真正的数组内容
+  return http.get<any, any>('/expense/daily-detail', { params })
+    .then(res => {
+      // 这里的 res 通常是 axios 拦截器处理后的结果
+      // 如果拦截器没处理，则是 res.data.data；如果处理了，则是 res.data
+      return res.data || []; 
+    });
+}
