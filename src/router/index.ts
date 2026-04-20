@@ -10,7 +10,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/',
     name: 'BusinessDashboard',
     // 采用路由懒加载（按需加载），提升首页首屏渲染速度
-    component: () => import('@/views/DashboardView.vue'),
+    component: () => import('@/views/dashboard/DashboardView.vue'),
     meta: { 
       title: '业务明细大屏' 
     }
@@ -18,7 +18,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/v1',
     name: 'ExecutiveDashboard',
-    component: () => import('@/views/ExecutiveDashboardView.vue'),
+    component: () => import('@/views/dashboard/ExecutiveDashboardView.vue'),
     meta: { 
       title: '集团高管指挥舱' 
     }
@@ -26,7 +26,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/v2',
     name: 'AnomalyMonitorView',
-    component: () => import('@/views/AnomalyMonitorView.vue'),
+    component: () => import('@/views/anomaly-monitor/AnomalyMonitorView.vue'),
     meta: { 
       title: '异常监控指挥舱' 
     }
@@ -34,8 +34,44 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/details/sales',
     name: 'SalesDetail',
-    component: () => import('@/views/SalesDetailView.vue'),
+    component: () => import('@/views/sales-detail/SalesDetailView.vue'),
     meta: { title: '各公司销售明细' }
+  },
+  {
+  path: '/details/order',
+  name: 'OrderDetail',
+  meta: { title: '各公司订单明细' },
+  component: () => import('@/views/order-detail/OrderDetailView.vue')
+},
+  {
+  path: '/screen/monitor',
+  name: 'screenMonitor',
+  meta: { title: '各公司订单明细' },
+  component: () => import('@/views/screen-monitor/index.vue')
+},
+  {
+  path: '/details/collection',
+  name: 'CollectionDetail',
+  meta: { title: '各公司回款明细' },
+  component: () => import('@/views/collection-detail/CollectionDetailView.vue')
+},
+  {
+    path: '/all-details',
+    name: 'AllDetails',
+    meta: { title: '明细数据查询' },
+    component: () => import('@/views/all-details/AllDetailsView.vue')
+  },
+  {
+    path: '/expense-monitor',
+    name: 'ExpenseMonitor',
+    meta: { title: '三项费用监控' },
+    component: () => import('@/views/expense-monitor/ExpenseMonitorView.vue')
+  },
+  {
+    path: '/expense-executive',
+    name: 'ExpenseExecutive',
+    meta: { title: '集团三费高管驾驶舱' },
+    component: () => import('@/views/expense-monitor/ExpenseExecutiveView.vue')
   }
   // 未来您可以在这里继续添加二级页面，例如：
   // {

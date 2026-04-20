@@ -1,163 +1,135 @@
-// src/api/dashboard-api.ts
 import http from './http'
-import type {
-  ApiResponse,
-  SalesMetric,
-  CollectionMetric,
-  OrderMetric,
-  PriceDeviationItem,
-  PriceDeviationDetail,
-  SalesTrendProduct,
-  CompanySummaryMetric,
-  CompanyDetailData
-} from '@/types'
-
-// ─── 后台原始数据结构（DTO） ──────────
-interface RawSalesMetric {
-  metricName: string
-  displayValue: string
-  budgetRate: number
-  gapValue: number
-  monthGoal: number
-}
-
-interface RawCollection {
-  collectionAmount: string
-  collectionRate: number
-  gapValue: number
-  monthGoal: number
-}
-
-interface RawOrder {
-  orderTitle: string
-  orderCount: number
-  orderRate: number
-  barColor: string
-}
-
-interface RawPriceDeviation {
-  productCode: string
-  productName: string
-  region: string
-  avgPrice7d: number
-  todayPrice: number
-  deviationAmt: number
-  deviationPct: number
-}
-
-// ─── 数据适配函数 ────────────────────────
-function fromRawSalesMetric(raw: RawSalesMetric): SalesMetric {
-  return {
-    label: raw.metricName,
-    value: raw.displayValue,
-    budgetRatio: raw.budgetRate,
-    budgetRatioText: (raw.budgetRate * 100).toFixed(2) + '%',
-    targetGap: raw.gapValue,
-    monthTarget: raw.monthGoal,
-    gapColor: raw.gapValue < 0 ? 'red' : 'green',
-  }
-}
-
-function fromRawCollection(raw: RawCollection): CollectionMetric {
-  return {
-    amount: raw.collectionAmount,
-    rate: raw.collectionRate,
-    rateText: (raw.collectionRate * 100).toFixed(2) + '%',
-    targetGap: raw.gapValue,
-    monthTarget: raw.monthGoal,
-  }
-}
-
-function fromRawOrder(raw: RawOrder): OrderMetric {
-  return {
-    title: raw.orderTitle,
-    count: raw.orderCount,
-    ratio: raw.orderRate,
-    ratioText: (raw.orderRate * 100).toFixed(2) + '%',
-    color: raw.barColor,
-  }
-}
-
-function fromRawPriceDeviation(raw: RawPriceDeviation): PriceDeviationItem {
-  const rate = raw.deviationPct / 100
-  return {
-    productCode: raw.productCode,
-    product: raw.productName,
-    region: raw.region || '未知',
-    sevenDayAvgPrice: raw.avgPrice7d,
-    todayAvgPrice: raw.todayPrice,
-    deviationAmount: raw.deviationAmt,
-    deviationRate: rate,
-    deviationRateText: raw.deviationPct.toFixed(2) + '%',
-    isAlert: rate <= -0.05,
-  }
-}
-
-// ─── API 接口函数 (按需拆分) ───────────────────────────────────────────────
+import type { ApiResponse, PriceDeviationDetail, CompanySummaryMetric, CompanyDetailData ,ProductDeepDetail,OrderRecord,CollectionDetailData, SalesDetailRecord, SalesDetailQueryParams} from '@/types'
+import { 
+  adaptSalesMetric, 
+  adaptCollection, 
+  adaptOrder, 
+  adaptPriceDeviation, 
+  adaptSalesTrend 
+} from './adapter/dashboardAdapter'
 
 /** 1. 获取核心指标 */
 export async function getDashboardMetrics(date?: string) {
-  const res = await http.get<any, ApiResponse<any>>('/dashboard/metrics', { params: { date } })
+  const res = await http.get<any, ApiResponse<any>>('/metrics', { params: { date } })
+  const data = res.data || {}
+  
+  // 使用 Adapter 统一处理映射，告别内联硬编码
   return {
-    salesVolume: { label: res.data.salesVolume.metricName, value: res.data.salesVolume.displayValue, budgetRatio: res.data.salesVolume.budgetRate, budgetRatioText: (res.data.salesVolume.budgetRate * 100).toFixed(2) + '%', targetGap: res.data.salesVolume.gapValue, monthTarget: res.data.salesVolume.monthGoal, gapColor: res.data.salesVolume.gapValue < 0 ? 'red' : 'green' },
-    salesAmount: { label: res.data.salesAmount.metricName, value: res.data.salesAmount.displayValue, budgetRatio: res.data.salesAmount.budgetRate, budgetRatioText: (res.data.salesAmount.budgetRate * 100).toFixed(2) + '%', targetGap: res.data.salesAmount.gapValue, monthTarget: res.data.salesAmount.monthGoal, gapColor: res.data.salesAmount.gapValue < 0 ? 'red' : 'green' },
-    collection: { amount: res.data.collection.collectionAmount, rate: res.data.collection.collectionRate, rateText: (res.data.collection.collectionRate * 100).toFixed(2) + '%', targetGap: res.data.collection.gapValue, monthTarget: res.data.collection.monthGoal }
+    salesVolume: adaptSalesMetric(data.salesVolume),
+    salesAmount: adaptSalesMetric(data.salesAmount),
+    collection: adaptCollection(data.collection)
   }
 }
 
 /** 2. 获取订单指标 */
 export async function getDashboardOrders(date?: string) {
-  const res = await http.get<any, ApiResponse<any>>('/dashboard/orders', { params: { date } })
+  const res = await http.get<any, ApiResponse<any>>('/metrics/orders', { params: { date } })
+  const data = res.data || {}
+
   return {
-    monthOrders: { title: res.data.monthOrders.orderTitle, count: res.data.monthOrders.orderCount, ratio: res.data.monthOrders.orderRate, ratioText: (res.data.monthOrders.orderRate * 100).toFixed(2) + '%', color: res.data.monthOrders.barColor },
-    yearOrders: { title: res.data.yearOrders.orderTitle, count: res.data.yearOrders.orderCount, ratio: res.data.yearOrders.orderRate, ratioText: (res.data.yearOrders.orderRate * 100).toFixed(2) + '%', color: res.data.yearOrders.barColor }
+    monthOrders: adaptOrder(data.monthOrders),
+    yearOrders: adaptOrder(data.yearOrders)
   }
 }
 
 /** 3. 获取价格偏差台账 */
-export async function getPriceDeviations(params?: { date?: string, [key: string]: any }): Promise<PriceDeviationItem[]> {
-  const res = await http.get<any, ApiResponse<any[]>>('/dashboard/price-deviations', { params })
-  return res.data.map(fromRawPriceDeviation)
+export async function getPriceDeviations(params?: { date?: string, [key: string]: any }) {
+  const res = await http.get<any, ApiResponse<any[]>>('/price-analysis/deviations', { params })
+  return (res.data || []).map(adaptPriceDeviation)
 }
 
 /** 4. 下钻：获取防破价雷达明细 */
 export async function getPriceDeviationDetails(code: string, region: string, date?: string): Promise<PriceDeviationDetail[]> {
-  const res = await http.get<any, ApiResponse<PriceDeviationDetail[]>>('/dashboard/price-deviations/details', { params: { code, region, date } })
-  return res.data
+  const res = await http.get<any, ApiResponse<PriceDeviationDetail[]>>('/price-analysis/deviations/details', { 
+    params: { code, region, date } 
+  })
+  return res.data || []
 }
 
 /** 5. 获取量价趋势 */
-export async function getSalesTrends(date?: string): Promise<SalesTrendProduct[]> {
-  const res = await http.get<any, ApiResponse<any[]>>('/dashboard/trends', { params: { date } })
-  return res.data.map(raw => ({
-    productCode: raw.productCode, product: raw.product, region: raw.region || '未知',
-    latestDate: raw.latestDate, latestVolume: raw.latestVolume, latestPrice: raw.latestPrice, volumeChange: raw.volumeChange, priceChange: raw.priceChange, correlation: raw.correlation, trend: raw.trend
-  }))
+export async function getSalesTrends(date?: string) {
+  const res = await http.get<any, ApiResponse<any[]>>('/trend-analysis/monthly', { params: { date } })
+  return (res.data || []).map(adaptSalesTrend)
+}
+
+
+export async function getSalesTrendYearDetail(productCode: string, region: string, date?: string) {
+  const res = await http.get<any, ApiResponse<any[]>>('/trend-analysis/yearly', { 
+    params: { productCode, region, date } 
+  })
+  return res.data || []
 }
 
 /** 6. 获取左侧公司概要列表 */
 export async function getSalesCompanies(type: string, date: string): Promise<CompanySummaryMetric[]> {
-  const res = await http.get<any, ApiResponse<CompanySummaryMetric[]>>('/dashboard/sales-companies', {
+  const res = await http.get<any, ApiResponse<CompanySummaryMetric[]>>('/sales-analysis/companies', {
     params: { type, date }
   })
-  return res.data
+  return res.data || []
 }
-
-// /** 7. 获取单个公司图表深度明细 */
-// export async function getSalesCompanyDetail(companyName: string, type: string, date: string): Promise<CompanyDetailData> {
-//   const res = await http.get<any, ApiResponse<CompanyDetailData>>('/dashboard/sales-company-detail', {
-//     params: { companyName, type, date }
-//   })
-//   return res.data
-// }
 
 /** 7. 获取单个公司图表深度明细 */
 export async function getSalesCompanyDetail(companyName: string, type: string, date: string, target: number): Promise<CompanyDetailData> {
-  const res = await http.get<any, ApiResponse<CompanyDetailData[]>>('/dashboard/sales-company-detail', {
-    // 🌟 修改点：将 target 加入到请求参数中，后端可以通过 ?target=xxx 接收
+  const res = await http.get<any, ApiResponse<CompanyDetailData[]>>('/sales-analysis/companies/detail', {
     params: { companyName, type, date, target }
   })
   
   const detailData = res.data && res.data.length > 0 ? res.data[0] : null
   return detailData || { products: [], dailySales: [] }
+}
+
+
+/** 获取订单下钻 - 公司穿透明细 */
+export async function getOrderCompanyDetail(companyName: string, date: string): Promise<OrderRecord[]> {
+  const res = await http.get<any, ApiResponse<OrderRecord[]>>('/sales-analysis/orders/company-detail', {
+    params: { companyName, date }
+  })
+  return res.data || []
+}
+
+/** 抽屉下钻：获取单个产品的多维分析数据 (支持 month / year) */
+export async function getProductDeepDetail(companyName: string, productCode: string, type: 'month' | 'year', date?: string): Promise<ProductDeepDetail | null> {
+  const res = await http.get<any, ApiResponse<ProductDeepDetail>>('/sales-analysis/product-deep', {
+    params: { companyName, productCode, type, date }
+  })
+  return res.data || null
+}
+
+
+export async function getCompanyAiDiagnosis(params: {
+  companyName: string
+  value: number
+  target: number
+  unit: string
+  date: string
+  bizType: 'sales' | 'collection'
+}) {
+  const res = await http.get<any, ApiResponse<any>>('/dashboard/ai/company-diagnosis', { params })
+  return res.data || null
+}
+
+/** * 获取回款下钻 - 左侧公司列表 
+ */
+export async function getCollectionCompanies(date: string): Promise<CompanySummaryMetric[]> {
+  const res = await http.get<any, ApiResponse<CompanySummaryMetric[]>>('/collection-analysis/companies', {
+    params: { date }
+  })
+  return res.data || []
+}
+
+/** * 获取回款下钻 - 右侧单个公司图表深度明细
+ */
+export async function getCollectionCompanyDetail(companyName: string, date: string): Promise<CollectionDetailData | null> {
+  const res = await http.get<any, ApiResponse<CollectionDetailData>>('/collection-analysis/company-detail', {
+    params: { companyName, date }
+  })
+  return res.data || null
+}
+
+/** 获取销售明细列表 */
+export async function getSalesDetails(params?: SalesDetailQueryParams): Promise<SalesDetailRecord[]> {
+  const res = await http.get<any, ApiResponse<SalesDetailRecord[]>>('/all_details/sale_details', {
+    params
+  })
+  return res.data || []
 }

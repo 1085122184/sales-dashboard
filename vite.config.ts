@@ -14,11 +14,31 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://192.168.200.40:18080', // 指向你的 Spring Boot 服务地址
+        // target: 'http://192.168.200.40:18080',
+        target: 'http://localhost:18080',
         changeOrigin: true,
-        // 如果后端接口本身没有 /api 前缀，需要开启下面这行进行重写：
-        // rewrite: (path) => path.replace(/^\/api/, '') 
+        
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          echarts: [
+            'echarts/core',
+            'echarts/charts',
+            'echarts/components',
+            'echarts/renderers',
+          ],
+          vue: ['vue', 'vue-router', 'pinia'],
+          utils: ['axios', 'dayjs', 'lodash-es', '@vueuse/core'],
+        },
+      },
+    },
+    cssCodeSplit: true,
+    sourcemap: false,
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 1000,
   },
 })

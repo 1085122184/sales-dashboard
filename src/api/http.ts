@@ -17,7 +17,7 @@ import axios, { type AxiosResponse } from 'axios'
 
 // ─── 基础配置 ─────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
-const TIMEOUT  = 15_000  // 15 秒超时
+const TIMEOUT  = 60_000  // 60 秒超时
 
 // ─── 创建实例 ──────────────────────────────────────────────────
 const http = axios.create({

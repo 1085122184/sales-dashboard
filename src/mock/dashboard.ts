@@ -3,6 +3,7 @@ import type {
   CollectionMetric,
   OrderMetric,
   PriceDeviationItem,
+  SalesTrendProduct,
 } from '@/types'
 
 // ==============================
@@ -132,20 +133,8 @@ export async function fetchDashboardData() {
 }
 
 // ==============================
-// 对接后台时，将上面 fetchDashboardData 替换为：
-//
-// import axios from 'axios'
-// export async function fetchDashboardData() {
-//   const res = await axios.get<ApiResponse<DashboardData>>('/api/dashboard')
-//   return res.data.data
-// }
-// ==============================
-
-// ==============================
 // 销售趋势 Mock 数据
 // ==============================
-
-import type { SalesTrendProduct } from '@/types'
 
 function makeTrend(
   product: string,

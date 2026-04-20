@@ -11,7 +11,13 @@ export interface CompanySummaryMetric {
 }
 
 export interface CompanyDetailData {
-  products: { productName: string; value: number; percentage: number }[]
+  products: {
+     productCode: string;
+     productName: string;
+     region?: string;
+     value: number; 
+     percentage: number
+     }[]
   dailySales: number[]
 }
 // =====================
@@ -104,4 +110,87 @@ export interface SalesTrendProduct {
   priceChange: number
   correlation: number
   trend: SalesTrendPoint[]
+  trendYear?: { date: string, volume: number, price: number }[]
+}
+
+// =====================
+// 三级页面：产品深度穿透相关类型
+// =====================
+export interface ProductDeepKPI {
+  totalVolume: number       // 累计销量
+  avgPrice: number          // 均价
+  profitEst: string         // 利润估算 (如 "+12.5%")
+}
+
+export interface ProductDeepTrend {
+  date: string              // 日期 (如 03-01 或 2026-01)
+  domesticVolume: number    // 国内销量
+  intlVolume: number        // 国外销量
+  amount: number            // 销售额
+}
+
+export interface ProductDeepCustomer {
+  name: string              // 客户名
+  volume: number            // 采购量
+}
+
+// 抽屉整体返回结构
+export interface ProductDeepDetail {
+  kpi: ProductDeepKPI
+  trend: ProductDeepTrend[]
+  topCustomers: ProductDeepCustomer[]
+}
+
+// =====================
+// 订单明细相关类型
+// =====================
+export interface OrderRecord {
+  orderDate: string           
+  orderNo: string        
+  materialDesc: string   
+  deliveryStatus: string  
+  salesOrg: string        
+  office: string         
+  salesPerson: string     
+  customer: string       
+  channel: string        
+}
+
+
+export interface CollectionAgeing {
+  name: string
+  value: number
+}
+
+export interface CollectionDebtor {
+  name: string
+  amount: number
+  days: number
+}
+
+export interface CollectionDetailData {
+  trendDate: string[]
+  trendActual: number[]
+  trendPlan: number[]
+  ageingData: CollectionAgeing[]
+  topDebtors: CollectionDebtor[]
+}
+
+// =====================
+// 销售明细明细（All Details）相关类型
+// =====================
+export interface SalesDetailRecord {
+  businessDate: string    // 日期
+  companyName: string     // 公司
+  region: string          // 渠道
+  productName: string     // 物料
+  groupName: string       // 物料组
+  sales: number           // 销量
+  amount: number          // 销售额
+  price: number           // 单价
+}
+
+export interface SalesDetailQueryParams {
+  companyName?: string
+  date?: string
 }
