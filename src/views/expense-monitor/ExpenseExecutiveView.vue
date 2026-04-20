@@ -511,7 +511,7 @@ const rightChartOption = computed(() => {
     </section>
 
     <!-- 各公司三费明细 -->
-    <section class="section detail-section">
+    <!-- <section class="section detail-section">
       <div class="detail-card-full">
         <div class="detail-header-row">
           <div class="detail-title-wrap">
@@ -576,7 +576,7 @@ const rightChartOption = computed(() => {
           </table>
         </div>
       </div>
-    </section>
+    </section> -->
   </div>
 </template>
 
