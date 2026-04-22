@@ -66,3 +66,21 @@ export function getExpenseDailyDetail(params: ExpenseDailyDetailParams) {
       return res.data || []; 
     });
 }
+
+export interface BudgetExecutionRecord {
+  companyName: string
+  salesActual: number
+  salesBudget: number
+  mgmtActual: number
+  mgmtBudget: number
+  finActual: number
+  finBudget: number
+}
+
+/** * 6. 获取分公司各维度预算执行监控数据 
+ * @param params { date, dimension }
+ */
+export async function getBudgetExecution(params: { date: string; dimension: 'month' | 'year' }) {
+  const res = await http.get<any, ApiResponse<BudgetExecutionRecord[]>>('/expense/budget-execution', { params })
+  return res.data || []
+}

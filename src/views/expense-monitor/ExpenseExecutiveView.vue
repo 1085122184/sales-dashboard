@@ -6,22 +6,24 @@ import { useExpenseExecutive } from '@/composables/useExpenseExecutive'
 
 const store = useGlobalStore()
 
-// 使用 composables（完全接管数据流）
 const {
   isAnyLoading,
   detailLoading,
   dailyDetailLoading,
+  budgetExecutionLoading, 
   overview,
   companyComparison,
   expenseStructure,
   expenseTrend,
   companyDetail,
   dailyDetailList,
-  detailMonth,      // 列表月份筛选
+  budgetExecutionList,    
+  detailMonth,      
   searchKeyword,
+  timeDimension,          
   refreshAll,
   handleSearch,
-  loadDailyDetail   // 调用日明细的接口方法
+  loadDailyDetail   
 } = useExpenseExecutive()
 
 // ==================== 图表类型切换 ====================
@@ -49,21 +51,18 @@ watch(detailDailyDate, () => {
   }
 })
 
-// 打开弹窗
 function openDetailModal(company: any) {
   selectedCompany.value = company
   detailDailyDate.value = store.queryDate || new Date().toISOString().slice(0, 10)
   showDetailModal.value = true
-  // 触发请求
   loadDailyDetail(company.name, detailDailyDate.value)
 }
 
-// 关闭弹窗
 function closeDetailModal() {
   showDetailModal.value = false
   setTimeout(() => {
     selectedCompany.value = null
-    dailyDetailList.value = [] // 清空旧数据
+    dailyDetailList.value = []
   }, 200)
 }
 
@@ -71,12 +70,118 @@ const monthValue = computed({
   get: () => store.queryDate ? store.queryDate.slice(0, 7) : '',
   set: (val: string) => {
     if (val) {
-      // 当用户选择月份时，同步回 store 并补齐日期格式
       store.queryDate = `${val}-01`
     }
   }
 })
+
 // ==================== 图表配置 ====================
+
+// 🌟 真实后端数据对接：分公司各维度预算执行监控
+const budgetExecutionOption = computed(() => {
+  if (!budgetExecutionList.value || !budgetExecutionList.value.length) return {}
+  
+  const rawData = budgetExecutionList.value
+  const categories = rawData.map(d => d.companyName)
+
+  const s_normal: number[] = [], s_exceed: number[] = [], s_unused: number[] = []
+  const m_normal: number[] = [], m_exceed: number[] = [], m_unused: number[] = []
+  const f_normal: number[] = [], f_exceed: number[] = [], f_unused: number[] = []
+
+  const tooltipRawData: Record<string, any> = {}
+
+  rawData.forEach(d => {
+    // 核心算法：将实际支出和预算拆分为 正常(合规)、超支(红标)、结余(虚线)
+    const calcStack = (act: number, bud: number) => ({
+      act, bud,
+      normal: Math.min(act, bud),
+      exceed: Math.max(0, act - bud),
+      unused: Math.max(0, bud - act)
+    })
+
+    const salesRes = calcStack(Number(d.salesActual || 0), Number(d.salesBudget || 0))
+    s_normal.push(salesRes.normal); s_exceed.push(salesRes.exceed); s_unused.push(salesRes.unused)
+
+    const mgmtRes = calcStack(Number(d.mgmtActual || 0), Number(d.mgmtBudget || 0))
+    m_normal.push(mgmtRes.normal); m_exceed.push(mgmtRes.exceed); m_unused.push(mgmtRes.unused)
+
+    const finRes = calcStack(Number(d.finActual || 0), Number(d.finBudget || 0))
+    f_normal.push(finRes.normal); f_exceed.push(finRes.exceed); f_unused.push(finRes.unused)
+
+    tooltipRawData[d.companyName] = { sales: salesRes, mgmt: mgmtRes, fin: finRes }
+  })
+
+  const createSeriesGroup = (namePrefix: string, stackName: string, color: string, norm: number[], exc: number[], un: number[]) => [
+    { name: `${namePrefix}正常`, type: 'bar', stack: stackName, data: norm, barWidth: '20%', itemStyle: { color: color } },
+    { name: `${namePrefix}超支`, type: 'bar', stack: stackName, data: exc, itemStyle: { color: '#ef4444' } },
+    { name: `${namePrefix}结余`, type: 'bar', stack: stackName, data: un, itemStyle: { color: 'rgba(255,255,255,0)', borderColor: color, borderType: 'dashed', borderWidth: 1.5 } }
+  ]
+
+  return {
+    tooltip: { 
+      trigger: 'axis', 
+      backgroundColor: 'rgba(255, 255, 255, 0.98)', 
+      borderColor: '#e2e8f0', 
+      borderWidth: 1, 
+      textStyle: { color: '#1e293b' },
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(0,0,0,0.03)' } },
+      formatter: (params: any) => {
+        const companyName = params[0].name
+        const data = tooltipRawData[companyName]
+        if (!data) return ''
+
+        const renderLine = (title: string, color: string, d: any) => {
+          const diff = d.act - d.bud
+          const diffHtml = diff > 0 
+            ? `<span style="color:#ef4444;font-weight:bold;">↑ 超支 ${diff.toFixed(2)}万</span>` 
+            : `<span style="color:#10b981;">↓ 结余 ${(-diff).toFixed(2)}万</span>`
+          const rate = d.bud > 0 ? ((d.act / d.bud) * 100).toFixed(1) : '0.0'
+
+          return `
+            <div style="margin-top: 8px; border-left: 4px solid ${color}; padding-left: 8px;">
+              <div style="color:#64748b; font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between;">
+                <span>${title}</span>
+                <span style="font-weight:600; color:${diff > 0 ? '#ef4444' : '#1e293b'}">执行率: ${rate}%</span>
+              </div>
+              <div style="font-size:13px; color:#1e293b; display:flex; justify-content:space-between; align-items:center; gap: 16px;">
+                <span>实际: <b>${d.act.toFixed(2)}</b> / 预算: ${d.bud.toFixed(2)}</span>
+                ${diffHtml}
+              </div>
+            </div>
+          `
+        }
+
+        return `
+          <div style="padding: 4px; min-width: 260px;">
+            <div style="font-weight:700; color:#0f172a; font-size:14px; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">${companyName}</div>
+            ${renderLine('销售费用', colors.sales, data.sales)}
+            ${renderLine('管理费用', colors.management, data.mgmt)}
+            ${renderLine('财务费用', colors.finance, data.fin)}
+          </div>
+        `
+      }
+    },
+    grid: { top: 30, right: 20, bottom: 40, left: 60 },
+    xAxis: { 
+      type: 'category', data: categories, 
+      axisLine: { lineStyle: { color: '#e2e8f0' } }, 
+      axisLabel: { color: '#64748b', fontSize: 11, interval: 0, rotate: 25 } 
+    },
+    yAxis: { 
+      type: 'value', name: '金额 (万元)', 
+      nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 20, 0, 0] }, 
+      axisLine: { show: false }, 
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }, 
+      axisLabel: { color: '#64748b' } 
+    },
+    series: [
+      ...createSeriesGroup('销售', 'sales', colors.sales, s_normal, s_exceed, s_unused),
+      ...createSeriesGroup('管理', 'mgmt', colors.management, m_normal, m_exceed, m_unused),
+      ...createSeriesGroup('财务', 'fin', colors.finance, f_normal, f_exceed, f_unused)
+    ]
+  }
+})
+
 const trendChartOption = computed(() => {
   if (!expenseTrend.value) return {}
   return {
@@ -159,14 +264,14 @@ const rightChartOption = computed(() => {
             <div class="card-icon icon-blue">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
-            <span class="trend-badge" :class="overview?.totalExpense.yoyChange > 0 ? 'up' : 'down'">
+            <span class="trend-badge" :class="(overview?.totalExpense?.yoyChange || 0) > 0 ? 'up' : 'down'">
               <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-              {{ Math.abs(overview?.totalExpense.yoyChange || 0) }}%
+              {{ Math.abs(overview?.totalExpense?.yoyChange || 0) }}%
             </span>
           </div>
           <div class="card-label">三费总额</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.totalExpense.amount || 0 }}</span>{{ overview?.totalExpense.unit || '万' }}</div>
-          <div class="card-subtitle">{{ overview?.totalExpense.yoyChangeText || '' }}</div>
+          <div class="card-amount">¥<span class="number">{{ overview?.totalExpense?.amount || 0 }}</span>{{ overview?.totalExpense?.unit || '万' }}</div>
+          <div class="card-subtitle">{{ overview?.totalExpense?.yoyChangeText || '' }}</div>
         </div>
 
         <div class="metric-card">
@@ -174,14 +279,14 @@ const rightChartOption = computed(() => {
             <div class="card-icon icon-purple">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
-            <span class="trend-badge" :class="overview?.salesExpense.yoyChange > 0 ? 'up' : 'down'">
+            <span class="trend-badge" :class="(overview?.salesExpense?.yoyChange || 0) > 0 ? 'up' : 'down'">
               <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
-              {{ Math.abs(overview?.salesExpense.yoyChange || 0) }}%
+              {{ Math.abs(overview?.salesExpense?.yoyChange || 0) }}%
             </span>
           </div>
           <div class="card-label">销售费用</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.salesExpense.amount || 0 }}</span>{{ overview?.salesExpense.unit || '万' }}</div>
-          <div class="card-subtitle">占比 {{ overview?.salesExpense.percent || 0 }}%</div>
+          <div class="card-amount">¥<span class="number">{{ overview?.salesExpense?.amount || 0 }}</span>{{ overview?.salesExpense?.unit || '万' }}</div>
+          <div class="card-subtitle">占比 {{ overview?.salesExpense?.percent || 0 }}%</div>
         </div>
 
         <div class="metric-card">
@@ -189,14 +294,14 @@ const rightChartOption = computed(() => {
             <div class="card-icon icon-cyan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
-            <span class="trend-badge" :class="overview?.managementExpense.yoyChange > 0 ? 'up' : 'down'">
+            <span class="trend-badge" :class="(overview?.managementExpense?.yoyChange || 0) > 0 ? 'up' : 'down'">
               <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-              {{ Math.abs(overview?.managementExpense.yoyChange || 0) }}%
+              {{ Math.abs(overview?.managementExpense?.yoyChange || 0) }}%
             </span>
           </div>
           <div class="card-label">管理费用</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.managementExpense.amount || 0 }}</span>{{ overview?.managementExpense.unit || '万' }}</div>
-          <div class="card-subtitle">占比 {{ overview?.managementExpense.percent || 0 }}%</div>
+          <div class="card-amount">¥<span class="number">{{ overview?.managementExpense?.amount || 0 }}</span>{{ overview?.managementExpense?.unit || '万' }}</div>
+          <div class="card-subtitle">占比 {{ overview?.managementExpense?.percent || 0 }}%</div>
         </div>
 
         <div class="metric-card">
@@ -204,14 +309,48 @@ const rightChartOption = computed(() => {
             <div class="card-icon icon-orange">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
-            <span class="trend-badge" :class="overview?.financeExpense.yoyChange > 0 ? 'up' : 'down'">
+            <span class="trend-badge" :class="(overview?.financeExpense?.yoyChange || 0) > 0 ? 'up' : 'down'">
               <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-              {{ Math.abs(overview?.financeExpense.yoyChange || 0) }}%
+              {{ Math.abs(overview?.financeExpense?.yoyChange || 0) }}%
             </span>
           </div>
           <div class="card-label">财务费用</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.financeExpense.amount || 0 }}</span>{{ overview?.financeExpense.unit || '万' }}</div>
-          <div class="card-subtitle">占比 {{ overview?.financeExpense.percent || 0 }}%</div>
+          <div class="card-amount">¥<span class="number">{{ overview?.financeExpense?.amount || 0 }}</span>{{ overview?.financeExpense?.unit || '万' }}</div>
+          <div class="card-subtitle">占比 {{ overview?.financeExpense?.percent || 0 }}%</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section budget-section">
+      <div class="trend-card-full">
+        <div class="chart-header" style="padding-bottom: 0; border-bottom: none;">
+          <div class="chart-title-wrap">
+            <h3 class="chart-title">分公司各维度预算执行监控</h3>
+            <span class="chart-subtitle">实时监控销售、管理、财务费用的预算水位及超支情况</span>
+          </div>
+          <div class="chart-switcher">
+            <button class="switch-btn" :class="{ active: timeDimension === 'month' }" @click="timeDimension = 'month'">当月预算</button>
+            <button class="switch-btn" :class="{ active: timeDimension === 'year' }" @click="timeDimension = 'year'">年度预算</button>
+          </div>
+        </div>
+        
+        <div class="custom-chart-legend">
+          <div class="legend-group">
+            <span class="legend-title">实际支出：</span>
+            <div class="legend-item"><i class="box" style="background:#3b82f6;"></i>销售</div>
+            <div class="legend-item"><i class="box" style="background:#a855f7;"></i>管理</div>
+            <div class="legend-item"><i class="box" style="background:#06b6d4;"></i>财务</div>
+          </div>
+          <div class="legend-divider"></div>
+          <div class="legend-group">
+            <span class="legend-title">预算健康度：</span>
+            <div class="legend-item"><i class="box" style="background:#ef4444;"></i>超出预算部分 (标红预警)</div>
+            <div class="legend-item"><i class="box-dashed"></i>未使用的预算结余</div>
+          </div>
+        </div>
+
+        <div class="trend-chart-body" style="min-height: 340px;" v-loading="budgetExecutionLoading">
+          <EChart :option="budgetExecutionOption" height="100%" autoresize class="absolute-chart"/>
         </div>
       </div>
     </section>
@@ -294,8 +433,6 @@ const rightChartOption = computed(() => {
                 <th>销售费用</th>
                 <th>管理费用</th>
                 <th>财务费用</th>
-                <!-- <th>合计</th>
-                <th>同比</th> -->
                 <th>操作</th>
               </tr>
             </thead>
@@ -310,12 +447,6 @@ const rightChartOption = computed(() => {
                 <td class="number-cell">¥{{ Number(company.sales || 0).toFixed(2) }}万</td>
                 <td class="number-cell">¥{{ Number(company.management || 0).toFixed(2) }}万</td>
                 <td class="number-cell">¥{{ Number(company.finance || 0).toFixed(2) }}万</td>
-                <!-- <td class="number-cell total-cell">¥{{ Number(company.total || 0).toFixed(2) }}万</td>
-                <td>
-                  <span class="yoy-badge-table" :class="company.yoy > 0 ? 'up' : 'down'">
-                    {{ company.yoy > 0 ? '+' : '' }}{{ company.yoy }}%
-                  </span>
-                </td> -->
                 <td>
                   <button class="detail-btn" @click="openDetailModal(company)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -394,7 +525,7 @@ const rightChartOption = computed(() => {
         </div>
       </div>
     </div>
-    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -541,4 +672,55 @@ const rightChartOption = computed(() => {
 @media (max-width: 1023px) { .section { padding: 12px 16px 0; } .chart-card, .trend-card-full, .detail-card-full { padding: 16px 18px; min-height: 360px; } .chart-header { flex-direction: column; align-items: flex-start; gap: 12px; } }
 @media (max-width: 767px) { .section { padding: 10px 12px 0; } .section-header { padding-top: 12px; } .executive-dashboard { padding-bottom: 24px; } .header-card { padding: 12px 14px; } .refresh-label { display: none; } .refresh-btn { padding: 8px 10px; } .metrics-grid { grid-template-columns: 1fr; gap: 10px; } .metric-card { padding: 16px; } .card-amount { font-size: var(--fs-lg); } .chart-card, .trend-card-full, .detail-card-full { padding: 16px; min-height: 320px; } .chart-body, .trend-chart-body { min-height: 260px; } .chart-header { flex-direction: column; align-items: flex-start; gap: 12px; } .detail-header-row { flex-direction: column; align-items: flex-start; gap: 12px; } .search-box, .search-input { width: 100%; } .detail-table th, .detail-table td { padding: 10px 12px; font-size: 12px; } .company-rank { width: 20px; height: 20px; font-size: 11px; } .detail-btn { padding: 5px 10px; font-size: 11px; } }
 @media (max-width: 420px) { .card-amount { font-size: 22px; } .card-icon { width: 36px; height: 36px; } .card-icon svg { width: 20px; height: 20px; } .trend-card-full, .detail-card-full { min-height: 300px; } }
+
+/* =========== 🌟 新增：预算图表自定义图例样式 =========== */
+.budget-section { margin-top: 0; }
+.custom-chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 0 16px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.legend-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+.legend-divider {
+  width: 1px;
+  height: 20px;
+  background: #e2e8f0;
+}
+.legend-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #334155;
+}
+.box {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.box-dashed {
+  width: 12px;
+  height: 12px;
+  border: 1.5px dashed #94a3b8;
+  border-radius: 2px;
+  display: inline-block;
+  background: transparent;
+}
 </style>

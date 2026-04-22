@@ -12,7 +12,16 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'blue',
   clickable: false,
 })
-
+function formatCardValue(val: string | number, type?: 'volume' | 'amount') {
+  const num = Number(val) || 0
+  const formattedNum = num.toLocaleString('zh-CN') // 自带千分位
+  
+  if (type === 'amount') {
+    return formattedNum + ' 万元'
+  } else {
+    return formattedNum + ' 吨'
+  }
+}
 const emit = defineEmits<{ (e: 'card-click'): void }>()
 
 const colorMap = {
@@ -51,12 +60,12 @@ const colorMap = {
       <div class="detail-row">
         <span class="row-label">本月累计</span>
         <span class="row-value number" :class="data.gapColor === 'red' ? 'text-danger' : 'text-success'">
-          {{ formatLargeNumber(data.targetGap) }}
+          {{ formatCardValue(Math.abs(data.targetGap), data.type) }}
         </span>
       </div>
       <div class="detail-row">
         <span class="row-label">本月目标</span>
-        <span class="row-value number">{{ formatLargeNumber(data.monthTarget) }}</span>
+        <span class="row-value number">{{ formatCardValue(data.monthTarget, data.type) }}</span>
       </div>
     </div>
   </div>

@@ -8,7 +8,23 @@ const props = defineProps<{
   productName: string
   companyName: string
   yesterday: string
+  mode: string
 }>()
+
+const sortedCustomers = computed(() => {
+  const list = [...(detailData.value?.topCustomers || [])]
+  if (props.mode === 'volume') {
+    return list.sort((a, b) => b.volume - a.volume)
+  } else {
+    return list.sort((a, b) => (b.amount || 0) - (a.amount || 0))
+  }
+})
+
+const maxMetricValue = computed(() => {
+  if (sortedCustomers.value.length === 0) return 0
+  const top = sortedCustomers.value[0]
+  return props.mode === 'volume' ? top.volume : (top.amount || 0)
+})
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 const isVisible = ref(false)
@@ -109,14 +125,26 @@ const chartOption = computed(() => {
             <div class="kpi-card">
               <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}累计销量</div>
               <div class="val">{{ Math.round(detailData.kpi.totalVolume).toLocaleString() }} <span>吨</span></div>
+              <div class="kpi-sub">
+                <span>国内 <b class="c-domestic">{{ Math.round(detailData.kpi.domesticVolume || 0).toLocaleString() }}</b> <span>吨</span></span>
+                <span>国外 <b class="c-intl">{{ Math.round(detailData.kpi.intlVolume || 0).toLocaleString() }}</b> <span>吨</span></span>
+              </div>
             </div>
             <div class="kpi-card">
               <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}累计销售额</div>
-              <div class="val">{{ Math.round(detailData.kpi.totalVolume*detailData.kpi.avgPrice/10000).toLocaleString() }} <span>万元</span></div>
+              <div class="val">{{ Math.round(detailData.kpi.totalAmount || (detailData.kpi.totalVolume * detailData.kpi.avgPrice / 10000)).toLocaleString() }} <span>万元</span></div>
+              <div class="kpi-sub">
+                <span>国内 <b class="c-domestic">{{ Math.round(detailData.kpi.domesticAmount || 0).toLocaleString() }}</b> <span>万元</span></span>
+                <span>国外 <b class="c-intl">{{ Math.round(detailData.kpi.intlAmount || 0).toLocaleString() }}</b> <span>万元</span></span>
+              </div>
             </div>
             <div class="kpi-card">
               <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}均价</div>
               <div class="val">¥{{ Math.round(detailData.kpi.avgPrice).toLocaleString() }}</div>
+              <div class="kpi-sub">
+                <span>国内 <b class="c-domestic">¥{{ Math.round(detailData.kpi.domesticAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.intlAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+              </div>
             </div>
             <!-- <div class="kpi-card highlight">
               <div class="lbl">利润贡献预估</div>
@@ -139,16 +167,27 @@ const chartOption = computed(() => {
           </div>
 
           <div class="chart-box">
-            <h3>本年核心采购客户 Top 10</h3>
+            <h3>本年核心采购客户 Top 20 (按{{ mode === 'volume' ? '销量' : '销售额' }}排序)</h3>
             <div class="customer-list">
-              <div class="cust-item" v-for="(cust, i) in detailData.topCustomers" :key="i">
-                <span class="rank">{{ i + 1 }}</span>
-                <span class="c-name">{{ cust.name }}</span>
+              <div class="cust-item" v-for="(cust, i) in sortedCustomers" :key="i">
+                <span class="rank" :class="{ 'top-three': i < 3 }">{{ i + 1 }}</span>
+                <span class="c-name" :title="cust.name">{{ cust.name }}</span>
                 <div class="bar-bg">
-                  <div class="bar-fill" :style="{ width: detailData.topCustomers[0].volume > 0 ? (cust.volume / detailData.topCustomers[0].volume) * 100 + '%' : '0%' }"></div>
+                  <div class="bar-fill" 
+                    :class="mode === 'amount' ? 'bar-amount' : 'bar-volume'"
+                    :style="{ width: maxMetricValue > 0 ? 
+                    ((mode === 'volume' ? cust.volume : cust.amount) / maxMetricValue) * 100 + '%' : '0%' }">
+                 </div>
                 </div>
-                <span class="c-val">{{ Math.round(cust.volume).toLocaleString() }} 吨</span>
+                <div class="c-vals">
+                  <div class="val-line" :class="{ 'is-active': mode === 'volume' }">
+                    {{ Math.round(cust.volume).toLocaleString() }} <small>吨</small>
+                  </div>
+                  <div class="val-line" :class="{ 'is-active': mode === 'amount' }">
+                    {{ Math.round(cust.amount || 0).toLocaleString() }} <small>万</small>
+                  </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -223,5 +262,55 @@ const chartOption = computed(() => {
   .kpi-grid { grid-template-columns: 1fr; }
   .c-name { width: 100px; }
   .chart-box-hd { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* 🌟 新增：KPI卡片底部细分样式 */
+.kpi-sub {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.kpi-sub span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi-sub b {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+.c-domestic { color: #3182ce; } /* 国内数据颜色：品牌蓝 */
+.c-intl { color: #8b5cf6; }     /* 国外数据颜色：紫色区分 */
+
+.customer-list { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.cust-item { display: flex; align-items: center; gap: 14px; height: 36px; }
+
+/* 排名样式 */
+.rank { width: 22px; height: 22px; background: #f1f5f9; color: #64748b; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.top-three { background: #eff6ff; color: #3182ce; }
+
+.c-name { width: 140px; font-size: 13px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bar-bg { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; position: relative; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.bar-volume { background: #3182ce; }
+.bar-amount { background: #f59e0b; }
+
+/* 数值列样式 */
+.c-vals { width: 100px; display: flex; flex-direction: column; justify-content: center; line-height: 1.2; text-align: right; }
+.val-line { font-size: 12px; color: #94a3b8; }
+.val-line small { font-size: 10px; margin-left: 1px; }
+.val-line.is-active { font-size: 13px; color: #1e293b; font-weight: 700; }
+
+@media (max-width: 767px) {
+  .c-name { width: 80px; }
+  .c-vals { width: 70px; }
 }
 </style>

@@ -56,6 +56,7 @@ export interface RawSalesTrend {
 // ─── 数据适配函数（Adapter） ────────────────────────
 
 export function adaptSalesMetric(raw: RawSalesMetric): SalesMetric {
+  const isVolume = raw.metricName?.includes('量') || (raw as any).type === 'volume'
   if (!raw) return {} as SalesMetric
   return {
     label: raw.metricName,
@@ -65,6 +66,7 @@ export function adaptSalesMetric(raw: RawSalesMetric): SalesMetric {
     targetGap: raw.gapValue,
     monthTarget: raw.monthGoal,
     gapColor: raw.gapValue < 0 ? 'red' : 'green',
+    type: isVolume ? 'volume' : 'amount'
   }
 }
 

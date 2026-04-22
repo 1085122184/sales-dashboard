@@ -118,7 +118,14 @@ export interface SalesTrendProduct {
 // =====================
 export interface ProductDeepKPI {
   totalVolume: number       // 累计销量
+  domesticVolume?: number   // 国内销量
+  intlVolume?: number       // 国外销量
+  totalAmount?: number      // 累计销售额
+  domesticAmount?: number   // 国内销售额
+  intlAmount?: number       // 国外销售额
   avgPrice: number          // 均价
+  domesticAvgPrice?: number // 国内均价
+  intlAvgPrice?: number     // 国外均价
   profitEst: string         // 利润估算 (如 "+12.5%")
 }
 
@@ -131,7 +138,8 @@ export interface ProductDeepTrend {
 
 export interface ProductDeepCustomer {
   name: string              // 客户名
-  volume: number            // 采购量
+  volume: number   //采购量
+  amount:number         // 销售额
 }
 
 // 抽屉整体返回结构

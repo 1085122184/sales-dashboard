@@ -125,7 +125,7 @@ function sortIcon(key: SortKey) {
 }
 
 function handleRowClick(item: PriceDeviationItem) {
-  const uniqueId = `${item.productCode}-${item.region}`
+  const uniqueId = `${item.productCode}_${item.region}`
   emit('select', props.selectedProduct === uniqueId ? null : uniqueId)
 }
 
@@ -227,9 +227,9 @@ function formatPrice(item: PriceDeviationItem, field: 'sevenDay' | 'today' | 'am
               </tr>
               <tr
                 v-for="{ row: item, index } in visibleRows"
-                :key="`${item.productCode}-${item.region}`"
+                :key="`${item.productCode}_${item.region}`"
                 class="data-row" :style="{ height: '52px' }"
-                :class="[`row-${getRateLevelCached(item.deviationRate)}`, { 'row-selected': selectedProduct === `${item.productCode}-${item.region}`, 'row-stripe': index % 2 === 1 }]"
+                :class="[`row-${getRateLevelCached(item.deviationRate)}`, { 'row-selected': selectedProduct === `${item.productCode}_${item.region}`, 'row-stripe': index % 2 === 1 }]"
                 @click="handleRowClick(item)"
               >
                 <td class="td-product">
@@ -261,9 +261,9 @@ function formatPrice(item: PriceDeviationItem, field: 'sevenDay' | 'today' | 'am
       </div>
       <div
         v-for="item in processedData"
-        :key="`m-${item.productCode}-${item.region}`"
+        :key="`m-${item.productCode}_${item.region}`"
         class="m-card"
-        :class="[`mcard-${getRateLevelCached(item.deviationRate)}`, { 'mcard-selected': selectedProduct === `${item.productCode}-${item.region}` }]"
+        :class="[`mcard-${getRateLevelCached(item.deviationRate)}`, { 'mcard-selected': selectedProduct === `${item.productCode}_${item.region}` }]"
         @click="handleRowClick(item)"
       >
         <!-- 卡片头：产品名 + 偏差率 -->

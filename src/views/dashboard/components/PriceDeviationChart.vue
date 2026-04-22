@@ -28,13 +28,13 @@ const isDetailLoading = ref(false)
 const { isMaxMd } = useBreakpoint()
 
 const selectedItem = computed(() =>
-  props.data.find(d => `${d.productCode}-${d.region}` === props.selectedProduct)
+  props.data.find(d => `${d.productCode}_${d.region}` === props.selectedProduct)
 )
 
 // 🌟 监听切换，异步请求详细对账数据
 watch(() => props.selectedProduct, async (newVal) => {
   if (newVal) {
-    const [code, region] = newVal.split('-')
+    const [code, region] = newVal.split('_')
     isDetailLoading.value = true
     try { 
       detailData.value = await getPriceDeviationDetails(code, region) 

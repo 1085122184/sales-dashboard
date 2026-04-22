@@ -286,7 +286,7 @@ onMounted(() => fetchCompanyList())
         :product-name="selectedProductName" 
         :company-name="currentCompany?.companyName || ''" 
         :yesterday="yesterday" 
-        @close="showProductDrawer = false"
+        :mode="detailType" @close="showProductDrawer = false"
       />
     </Teleport>
   </div>
