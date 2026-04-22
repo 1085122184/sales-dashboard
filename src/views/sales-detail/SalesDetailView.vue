@@ -1,107 +1,71 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import dayjs from 'dayjs'
 import { useRoute } from 'vue-router'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { getSalesCompanies, getSalesCompanyDetail } from '@/api/dashboard-api'
-import type { CompanySummaryMetric, CompanyDetailData } from '@/types/index'
-import BaseEChart from '@/components/charts/BaseEChart.vue'
-import ProductDetailDrawer from './components/ProductDetailDrawer.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { ChartSkeleton } from '@/components'
+import { useSalesDetail } from '@/composables/useSalesDetail'
 
-// 🌟 引入刚拆分出来的四个核心模块
-import DetailTopBar from '@/components/business/DetailTopBar.vue'
+// 组件引入 (路径已标准化)
+import BaseEChart from '@/components/charts/BaseEChart.vue'
+import { ChartSkeleton } from '@/components'
+import DetailTopBar from './components/DetailTopBar.vue'
 import DetailBanner from './components/DetailBanner.vue'
 import CompanySidebar from '@/components/business/CompanySidebar.vue'
 import ProductStructureTable from './components/ProductStructureTable.vue'
+import ProductDetailDrawer from './components/ProductDetailDrawer.vue'
 
 echarts.use([BarChart, LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer])
 
-// 🌟 使用响应式断点检测替代非响应式的 isMobile()
 const { isMaxMd } = useBreakpoint()
+const route = useRoute()
 
-const route  = useRoute()
-
-const pageTitle  = ref(route.query.cleanTitle || '明细数据')
+// 基础变量
+const pageTitle = ref(route.query.cleanTitle || '明细数据')
 const detailType = ref((route.query.type as string) || 'amount')
 const targetDate = ref((route.query.date as string) || '2025-06-15')
 const yesterday = dayjs(targetDate.value).subtract(1, 'day').format('YYYY-MM-DD')
-
-const unit       = computed(() => detailType.value === 'volume' ? '吨' : '万')
+const unit = computed(() => detailType.value === 'volume' ? '吨' : '万')
 const metricName = computed(() => detailType.value === 'volume' ? '销量' : '销售额')
 
-const loading       = ref(true)
-const detailLoading = ref(false)
-const companyList   = ref<CompanySummaryMetric[]>([])
-const currentDetail = ref<CompanyDetailData | null>(null)
-const selectedId    = ref(0)
-const sidebarOpen   = ref(false)
-// 🌟 抽屉状态与数据
+// UI 交互状态
 const showProductDrawer = ref(false)
 const selectedProductCode = ref('')
 const selectedProductName = ref('')
+const sidebarOpen = ref(false)
+
+// 🌟 一行代码接入所有核心逻辑！
+const { 
+  loading, detailLoading, companyList, currentDetail, selectedId, 
+  fetchCompanyList, handleSelectCompany 
+} = useSalesDetail(detailType.value, targetDate.value)
 
 const currentCompany = computed(() => companyList.value[selectedId.value] ?? null)
 
-// 🌟 删除本地 isMobile()，使用响应式的 isMaxMd
-
-// 🌟 处理柱状图点击事件
+// 图表交互逻辑
 function handleProductClick(params: any) {
-  // params 里面装了刚才点击那个条形图的所有上下文信息
   if (!params || !params.name) return
-  
   selectedProductCode.value = params.data.productCode
-  // params.name 就是产品的名字，比如 "氟硅橡胶"
   selectedProductName.value = params.name
-  // 弹出我们刚才写好的高大上 L3 抽屉
   showProductDrawer.value = true 
 }
 
-// ── API 数据抓取逻辑 ──
-// 公司固定排序顺序
-const COMPANY_ORDER = ['绿冷', '高分子', '氟硅', '有机硅']
-
-async function fetchCompanyList() {
-  loading.value = true
-  try {
-    const companies = await getSalesCompanies(detailType.value, targetDate.value)
-    // 按照固定顺序排序: 绿冷 > 高分子 > 氟硅 > 有机硅
-    companyList.value = companies.sort((a, b) => {
-      const indexA = COMPANY_ORDER.findIndex(name => a.companyName.includes(name))
-      const indexB = COMPANY_ORDER.findIndex(name => b.companyName.includes(name))
-      // 如果公司名称不在固定列表中,保持在原位置
-      const orderA = indexA === -1 ? COMPANY_ORDER.length : indexA
-      const orderB = indexB === -1 ? COMPANY_ORDER.length : indexB
-      return orderA - orderB
-    })
-  } finally { loading.value = false }
-
-  if (companyList.value.length > 0) await handleSelectCompany(0)
+function onCompanyChange(idx: number) {
+  handleSelectCompany(idx)
+  sidebarOpen.value = false
 }
 
-async function handleSelectCompany(idx: number) {
-  selectedId.value = idx
-  const targetCompany = companyList.value[idx]
-  if (!targetCompany?.companyName) return
-
-  detailLoading.value = true
-  try {
-    currentDetail.value = await getSalesCompanyDetail(targetCompany.companyName, detailType.value, targetDate.value, targetCompany.target)
-  } finally { detailLoading.value = false }
-}
-
-const trendChartHeight = computed(() => isMaxMd.value ? '220px' : '320px')
-// ── ECharts 配置逻辑 ──
+// ── ECharts 视图级计算 ──
 const productChartHeight = computed(() => {
   if (!currentDetail.value) return '220px'
   const productCount = new Set(currentDetail.value.products.map(p => p.productName)).size
   return `${Math.max(220, productCount * (isMaxMd.value ? 40 : 50) + 80)}px`
 })
-// 🌟 1. 产品结构图表 (全部取整)
+const trendChartHeight = computed(() => isMaxMd.value ? '220px' : '320px')
+
 const productChartOption = computed(() => {
   if (!currentDetail.value) return {}
   const mobile = isMaxMd.value
@@ -130,34 +94,27 @@ const productChartOption = computed(() => {
         let sum = 0
         params.forEach(p => {
           if (p.value > 0) {
-            // 🌟 tooltip 的具体数值强转整数
             html += `<div style="display:flex; justify-content:space-between; margin-top:6px; min-width: 120px;">
                        <span>${p.marker} ${p.seriesName}</span><b style="color:#3182ce; margin-left: 12px;">${Math.round(p.value).toLocaleString()} ${unit.value}</b>
                      </div>`
             sum += p.value
           }
         })
-        // 🌟 tooltip 的合计数值强转整数
         return html + `<div style="border-top:1px dashed #e2e8f0; margin-top:8px; padding-top:6px; display:flex; justify-content:space-between;"><span style="color:#64748b">总计</span><b style="color:#1e293b">${Math.round(sum).toLocaleString()} ${unit.value}</b></div>`
       }
     },
-    // 🌟 X轴强转整数，避免出现小数刻度
     xAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#94a3b8', fontSize: mobile ? 10 : 13, formatter: (val: number) => Math.round(val) }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
     yAxis: { type: 'category', data: sorted.map(d => d.name), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#334155', fontSize: mobile ? 11 : 14, fontWeight: 500, interval: 0, width: mobile ? 70 : 100, overflow: 'truncate' } },
     series: [
-      // 🌟 数据传给 ECharts 时全部 Math.round 取整
       { name: '国内', type: 'bar', stack: 'total', barWidth: mobile ? 14 : 22, itemStyle: { color: '#3182ce', borderRadius: 0 }, data: sorted.map(d => ({ value: Math.round(d.domestic), productCode: d.code })) },
       { name: '国外', type: 'bar', stack: 'total', barWidth: mobile ? 14 : 22, itemStyle: { color: '#93c5fd', borderRadius: [0, 6, 6, 0] }, data: sorted.map(d => ({ value: Math.round(d.intl), productCode: d.code })),label: { show: !mobile, position: 'right', color: '#64748b', fontSize: 13, fontWeight: 'bold', formatter: (p: any) => sorted[p.dataIndex].total > 0 ? `${Math.round(sorted[p.dataIndex].total)}${unit.value}` : '' } }
     ]
   }
 })
 
-// 🌟 2. 目标趋势图表 (全部取整)
 const trendChartOption = computed(() => {
   if (!currentDetail.value || !currentCompany.value) return {}
   const c = currentCompany.value
-  
-  // 🌟 数据洗脱时直接全部 Math.round 取整
   const daily = (currentDetail.value.dailySales || []).map(v => Math.round(Number(v) || 0))
   const mobile = isMaxMd.value
   const daysXAxis = Array.from({ length: new Date(new Date(yesterday).getFullYear(), new Date(yesterday).getMonth() + 1, 0).getDate() }, (_, i) => `${i + 1}日`)
@@ -165,9 +122,8 @@ const trendChartOption = computed(() => {
   let sum = 0
   const cumulativeData = currentDetail.value.dailySales.map(val => {
     sum += Number(val) || 0
-    return Math.round(sum) // 累计也取整
+    return Math.round(sum)
   })
-  // 理想进度线也取整
   const idealPaceData = Array.from({ length: daysXAxis.length }, (_, i) => Math.round((c.target / daysXAxis.length) * (i + 1)))
 
   const primaryColor = c.isAlert ? '#f56565' : '#3182ce'
@@ -178,7 +134,6 @@ const trendChartOption = computed(() => {
     grid: { left: 24, right: 24, top: mobile ? 40 : 50, bottom: 20, containLabel: true },
     tooltip: { 
       trigger: 'axis', axisPointer: { type: 'cross' }, backgroundColor: '#fff', borderColor: '#eef2f6', textStyle: { color: '#1e293b', fontSize: 13 },
-      // 🌟 增加定制 formatter 强制显示千分位整数
       formatter: (params: any[]) => {
         let html = `<div style="font-weight:700;margin-bottom:6px;color:#1e293b">${params[0].name}</div>`
         params.forEach(p => {
@@ -191,9 +146,9 @@ const trendChartOption = computed(() => {
     xAxis: { type: 'category', data: daysXAxis, axisLine: { lineStyle: { color: '#eef2f6' } }, axisTick: { show: false }, axisLabel: { color: '#64748b', fontSize: mobile ? 10 : 13 } },
     yAxis: [
       { 
-        type: 'value', name: `单日(${unit.value})`, position: 'left', minInterval: 1, // 🌟 强制刻度为整数
+        type: 'value', name: `单日(${unit.value})`, position: 'left', minInterval: 1, 
         nameTextStyle: { color: '#64748b', fontSize: mobile ? 10 : 13, align: 'right', padding: [0, 10, 0, 0] }, 
-        axisLabel: { color: '#94a3b8', fontSize: mobile ? 10 : 13, formatter: (val: number) => Math.round(val) }, // 🌟 标签强转整数
+        axisLabel: { color: '#94a3b8', fontSize: mobile ? 10 : 13, formatter: (val: number) => Math.round(val) }, 
         splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } } 
       },
       { 
@@ -216,9 +171,7 @@ onMounted(() => fetchCompanyList())
 
 <template>
   <div class="exec-dash">
-    
     <DetailTopBar :pageTitle="pageTitle as string" :metricName="metricName" :yesterday="yesterday" />
-
     <DetailBanner v-if="!loading && currentCompany" :company="currentCompany" :unit="unit" :yesterday="yesterday" mode="sales" />
 
     <div class="body-wrap">
@@ -234,18 +187,17 @@ onMounted(() => fetchCompanyList())
         v-model:selectedId="selectedId" 
         v-model:sidebarOpen="sidebarOpen"
         :unit="unit" 
-        @change="handleSelectCompany" 
+        @change="onCompanyChange" 
       />
 
       <main class="canvas" v-if="!loading">
-        <!-- 加载中：显示骨架屏 -->
         <template v-if="detailLoading">
           <div class="skeleton-grid">
             <ChartSkeleton height="300px" :show-legend="false" />
             <ChartSkeleton height="350px" :show-legend="true" />
           </div>
         </template>
-        <!-- 有数据：显示真实内容 -->
+        
         <div v-else-if="currentDetail && currentCompany" class="viz-container" :key="currentCompany.companyName">
           <div class="viz-card">
             <div class="card-hd">
@@ -268,7 +220,7 @@ onMounted(() => fetchCompanyList())
             <ProductStructureTable :detailData="currentDetail" :unit="unit" :metricName="metricName" />
           </div>
         </div>
-        <!-- 无数据：显示空状态 -->
+        
         <div v-else class="empty-state">
           <p>请选择一个公司查看详情</p>
         </div>
@@ -286,7 +238,8 @@ onMounted(() => fetchCompanyList())
         :product-name="selectedProductName" 
         :company-name="currentCompany?.companyName || ''" 
         :yesterday="yesterday" 
-        :mode="detailType" @close="showProductDrawer = false"
+        :mode="detailType"
+        @close="showProductDrawer = false"
       />
     </Teleport>
   </div>
@@ -311,6 +264,7 @@ onMounted(() => fetchCompanyList())
 .chip     { font-size: 13px; font-weight: 600; background: #eff6ff; color: #3182ce; border: 1px solid #bfdbfe; padding: 4px 12px; border-radius: 6px; flex-shrink: 0; }
 .chip-red { background: #fff5f5; color: #f56565; border-color: #fecaca; }
 
+/* 🌟 去除死高度，交由 JS Props 控制 */
 .chart-trend   { width: 100%; }
 .chart-product { width: 100%; }
 
@@ -351,5 +305,6 @@ onMounted(() => fetchCompanyList())
   .viz-card { padding: 14px 14px; border-radius: 12px; }
   .card-hd { margin-bottom: 12px; }
   .card-hd h3 { font-size: 14px; }
+  /* 🌟 去除死高度 */
 }
 </style>
