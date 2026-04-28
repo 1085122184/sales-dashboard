@@ -39,9 +39,10 @@ export async function getPriceDeviations(params?: { date?: string, [key: string]
 }
 
 /** 4. 下钻：获取防破价雷达明细 */
-export async function getPriceDeviationDetails(code: string, region: string, date?: string): Promise<PriceDeviationDetail[]> {
+export async function getPriceDeviationDetails(code: string, region: string, date?: string, type: 'today' | '7days' = 'today'): Promise<PriceDeviationDetail[]> {
   const res = await http.get<any, ApiResponse<PriceDeviationDetail[]>>('/price-analysis/deviations/details', { 
-    params: { code, region, date } 
+    // 🌟 将 type 传入 params
+    params: { code, region, date, type } 
   })
   return res.data || []
 }

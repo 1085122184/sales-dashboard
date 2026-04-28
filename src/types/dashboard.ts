@@ -40,6 +40,12 @@ export interface CollectionMetric {
   monthTarget: number
 }
 
+export interface CollectionDetailData {
+  customer: string
+  volume: number
+  amount: number
+}
+
 export interface OrderMetric {
   title: string
   count: number
@@ -120,6 +126,7 @@ export interface ProductDeepDetail {
 }
 
 export interface OrderRecord {
+  
   orderDate: string           
   orderNo: string        
   materialDesc: string   
@@ -128,5 +135,28 @@ export interface OrderRecord {
   office: string         
   salesPerson: string     
   customer: string       
-  channel: string        
+  channel: string
+  orderNum:number
+  orderAmount:number
+  details?: OrderDetailItem[]
+}
+
+export interface OrderDetailItem {
+  materialDesc: string
+  customer: string
+  office: string
+  volume: number
+  price: number
+  amount: number
+  detailDate: string
+}
+
+// 🌟 新增：公司维度的增长点（绝对值与增长率）
+export interface CompanyGrowthPoint {
+  companyName: string;
+  currentValue: number;    // 本期值(万)
+  yoyValue: number;        // 去年同期值(万)
+  momValue: number;        // 上期环比值(万)
+  yoy: number;             // 同比增长率 %
+  mom: number;             // 环比增长率 %
 }

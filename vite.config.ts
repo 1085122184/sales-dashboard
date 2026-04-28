@@ -14,8 +14,8 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://192.168.200.40:18080',
-        // target: 'http://localhost:18080',
+        // target: 'http://192.168.200.40:18080',
+        target: 'http://localhost:18080',
         changeOrigin: true,
         
       }

@@ -23,7 +23,7 @@ function formatWan(val: number): string {
     </div>
 
     <div class="card-top">
-      <div class="card-label">回款金额（日）</div>
+      <div class="card-label">回款金额（月累计）</div>
       <div class="card-value number">{{ data.amount }}</div>
     </div>
     <div class="card-bottom">
@@ -50,7 +50,7 @@ function formatWan(val: number): string {
   transition: all 0.3s ease;
   display: flex; flex-direction: column; height: 100%; box-sizing: border-box;
   border: 1px solid #bbf7d0;
-  position: relative; /* 🌟 必须加上相对定位，作为箭头的锚点 */
+  position: relative; 
   overflow: hidden;
 }
 
@@ -60,7 +60,7 @@ function formatWan(val: number): string {
 }
 .collection-card.clickable:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(22, 163, 74, 0.15); /* 绿色主题阴影 */
+  box-shadow: 0 8px 25px rgba(22, 163, 74, 0.15); 
 }
 
 
@@ -70,7 +70,7 @@ function formatWan(val: number): string {
   right: 14px;
   width: 18px;
   height: 18px;
-  color: #16a34a; /* 匹配回款卡的绿色主题 */
+  color: #16a34a; 
   opacity: 0;
   transform: translate(-6px, 6px);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);

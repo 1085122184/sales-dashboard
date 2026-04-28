@@ -37,7 +37,6 @@ const selectedProductCode = ref('')
 const selectedProductName = ref('')
 const sidebarOpen = ref(false)
 
-// 🌟 一行代码接入所有核心逻辑！
 const { 
   loading, detailLoading, companyList, currentDetail, selectedId, 
   fetchCompanyList, handleSelectCompany 

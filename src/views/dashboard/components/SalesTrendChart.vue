@@ -69,7 +69,7 @@ const strategyStatus = computed(() => {
   else                                                      return { label: '量价双杀 (极度危险)', color: ChartTheme.colors.danger, icon: '🚨' }
 })
 
-// 主图表 Option (保持不变)
+// 主图表 Option
 const mainChartOption = computed(() => {
   const mobile = isMaxMd.value
   const sortedData = [...props.data].sort((a, b) => b.latestVolume - a.latestVolume)
@@ -94,9 +94,9 @@ const mainChartOption = computed(() => {
           <div style="font-weight:700;font-size:14px;margin-bottom:8px">
             <span style="font-size:11px;background:#f1f5f9;padding:2px 5px;border-radius:4px;color:${ChartTheme.colors.textSub};margin-right:5px">${t.region}</span>${t.product}
           </div>
-          <div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">近期销量：<b style="color:${ChartTheme.colors.textMain}">${Math.round(t.latestVolume).toLocaleString()} 吨</b></div>
-          <div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">销量环比：<b style="color:${t.volumeChange >= 0 ? ChartTheme.colors.success : ChartTheme.colors.danger}">${Math.round(t.volumeChange * 100)}%</b></div>
-          <div style="color:${ChartTheme.colors.textSub}">价格环比：<b style="color:${t.priceChange >= 0 ? ChartTheme.colors.success : ChartTheme.colors.danger}">${Math.round(t.priceChange * 100)}%</b></div>
+          <div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">近期销量：<b style="color:${ChartTheme.colors.textMain}">${Number(t.latestVolume).toFixed(2)} 吨</b></div>
+          <div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">销量环比：<b style="color:${t.volumeChange >= 0 ? ChartTheme.colors.success : ChartTheme.colors.danger}">${(t.volumeChange * 100).toFixed(2)}%</b></div>
+          <div style="color:${ChartTheme.colors.textSub}">价格环比：<b style="color:${t.priceChange >= 0 ? ChartTheme.colors.success : ChartTheme.colors.danger}">${(t.priceChange * 100).toFixed(2)}%</b></div>
         `
       }
     },
@@ -108,7 +108,7 @@ const mainChartOption = computed(() => {
     xAxis: {
       type: 'value', name: '销量',
       splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
-      axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12, formatter: (value: number) => Math.round(value).toString() }
+      axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12, formatter: (value: number) => value.toFixed(2) }
     },
     yAxis: {
       type: 'category', inverse: true, data: sortedData.map(d => d.product),
@@ -118,14 +118,15 @@ const mainChartOption = computed(() => {
     series: [{
       type: 'bar', barWidth: mobile ? 14 : 20,
       data: sortedData.map(d => ({
-        value: Math.round(d.latestVolume), originalData: d,
+        value: d.latestVolume, originalData: d,
         itemStyle: { color: getColor(d), borderRadius: [0, 4, 4, 0] }
       })),
-      label: { show: !mobile, position: 'right', color: ChartTheme.colors.textSub, fontWeight: 600, fontSize: 12, formatter: (p: any) => Math.round(p.value).toLocaleString() }
+      label: { show: !mobile, position: 'right', color: ChartTheme.colors.textSub, fontWeight: 600, fontSize: 12, formatter: (p: any) => Number(p.value).toFixed(2) }
     }]
   }
 })
 
+// 🌟 详情图表 Option
 // 🌟 详情图表 Option
 const detailChartOption = computed(() => {
   // 核心：根据当前的 Tab，决定去当月数组还是本年数组里捞数据！
@@ -134,9 +135,50 @@ const detailChartOption = computed(() => {
   const sourceData = trendTab.value === 'year' ? (props.yearData || []) : (item.trend || [])
   if (sourceData.length === 0) return {}
   const mobile = isMaxMd.value
-  const days = sourceData.map((t: any) => t.date)
-  const volumes = sourceData.map((t: any) => t.volume)
-  const prices = sourceData.map((t: any) => t.price)
+
+  // 🌟 新增：获取当前真实的年份和月份
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // JS 月份是 0-11，需要 +1
+
+  const days: string[] = []
+  const volumes: (number | null)[] = []
+  const prices: (number | null)[] = []
+
+  // 🌟 修改：遍历数据并判断是否属于“未来月份”
+  sourceData.forEach((t: any) => {
+    let isFuture = false
+
+    if (trendTab.value === 'year') {
+      const dateStr = String(t.date)
+      let year = currentYear
+      let month = 0
+
+      // 兼容解析各种日期格式，如 "2024-05", "5月", "05" 等
+      if (dateStr.includes('-')) {
+        const parts = dateStr.split('-')
+        if (parts[0].length === 4) {
+          year = parseInt(parts[0], 10)
+          month = parseInt(parts[1], 10)
+        } else {
+          month = parseInt(parts[0], 10)
+        }
+      } else {
+        // 提取纯数字作为月份
+        month = parseInt(dateStr.replace(/[^0-9]/g, ''), 10)
+      }
+
+      // 如果数据年份就是今年，并且月份大于当前月，则判定为未来数据
+      if (year === currentYear && month > currentMonth) {
+        isFuture = true
+      }
+    }
+
+    days.push(t.date)
+    // 🌟 核心：如果是未来月份，将数据置为 null，ECharts 就不会连线到 0
+    volumes.push(isFuture ? null : t.volume)
+    prices.push(isFuture ? null : t.price)
+  })
 
   const isDomestic = item.region === '国内'
   const currencyName = isDomestic ? '人民币' : '美元'
@@ -150,26 +192,29 @@ const detailChartOption = computed(() => {
     },
     legend: { bottom: 0, icon: 'roundRect', textStyle: { color: ChartTheme.colors.textSub, fontSize: mobile ? 11 : 13 } },
     tooltip: {
-      trigger: 'axis', axisPointer: { type: 'cross' },
+      trigger: 'axis', axisPointer: { type: 'cross',label: { precision: 2 } },
       backgroundColor: 'rgba(255,255,255,0.98)', padding: [12, 16],
       extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-radius: 8px;',
       formatter: (params: any[]) => {
         let html = `<div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${ChartTheme.colors.textMain}">${params[0].axisValue}</div>`
         params.forEach(p => {
+          // 防止 tooltip 读到 null 值报错，加一层判断
+          if (p.value == null) return 
+          
           if (p.seriesName === '成交单价') {
-             html += `<div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:${ChartTheme.colors.textMain}">${currencySymbol}${Math.round(p.value).toLocaleString()}</b></div>`
+             html += `<div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:${ChartTheme.colors.textMain}">${currencySymbol}${Number(p.value).toFixed(2)}</b></div>`
           } else {
-             html += `<div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:${ChartTheme.colors.textMain}">${Math.round(p.value).toLocaleString()} 吨</b></div>`
+             html += `<div style="color:${ChartTheme.colors.textSub};margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:${ChartTheme.colors.textMain}">${Number(p.value).toFixed(2)} 吨</b></div>`
           }
         })
-        return html
+        return html === `<div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${ChartTheme.colors.textMain}">${params[0].axisValue}</div>` ? html + '<div style="color:#94a3b8;font-size:12px;">暂无数据</div>' : html
       }
     },
     grid: { top: mobile ? 40 : 50, bottom: mobile ? 35 : 40, left: 10, right: 10, containLabel: true },
     xAxis: { type: 'category', data: days, axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12 }, axisPointer: { type: 'shadow' } },
     yAxis: [
-      { type: 'value', name: '销量 (吨)', alignTicks: true, min: 0, minInterval: 1, axisLine: { show: false }, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12, formatter: (value: number) => Math.round(value) } },
-      { type: 'value', name: `单价 (${currencyName})`, alignTicks: true, scale: true, minInterval: 1, min: (value: any) => Math.floor(value.min * 0.98), max: (value: any) => Math.ceil(value.max * 1.02), axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12, formatter: (value: number) => Math.round(value) } }
+      { type: 'value', name: '销量 (吨)', alignTicks: true, min: 0, axisLine: { show: false }, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12, formatter: (value: number) => value.toFixed(2) } },
+      { type: 'value', name: `单价 (${currencyName})`, alignTicks: true, scale: true, min: (value: any) => value.min * 0.98, max: (value: any) => value.max * 1.02, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: ChartTheme.colors.textSub, fontSize: mobile ? 10 : 12, formatter: (value: number) => value.toFixed(2) } }
     ],
     series: [
       { name: '实际销量', type: 'bar', data: volumes, itemStyle: { color: '#e2e8f0', borderRadius: [4, 4, 0, 0] }, emphasis: { itemStyle: { color: '#cbd5e1' } } },

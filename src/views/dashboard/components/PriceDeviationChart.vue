@@ -24,6 +24,8 @@ const emit = defineEmits<{ (e: 'clear-selection'): void }>()
 const detailData = ref<PriceDeviationDetail[]>([])
 const isDetailLoading = ref(false)
 
+const viewType = ref<'today' | '7days'>('today')
+
 // 🌟 使用响应式断点检测替代非响应式的 isMobile()
 const { isMaxMd } = useBreakpoint()
 
@@ -32,12 +34,13 @@ const selectedItem = computed(() =>
 )
 
 // 🌟 监听切换，异步请求详细对账数据
-watch(() => props.selectedProduct, async (newVal) => {
-  if (newVal) {
-    const [code, region] = newVal.split('_')
+watch([() => props.selectedProduct, viewType], async ([newProduct, newType]) => {
+  if (newProduct) {
+    const [code, region] = newProduct.split('_')
     isDetailLoading.value = true
     try { 
-      detailData.value = await getPriceDeviationDetails(code, region) 
+      // 传入 undefined 作为 date，传入 newType 作为 type
+      detailData.value = await getPriceDeviationDetails(code, region, undefined, newType) 
     } finally { 
       isDetailLoading.value = false 
     }
@@ -133,16 +136,20 @@ const detailChartOption = computed(() => {
   const targetPrice = item.sevenDayAvgPrice
   const isDomestic = item.region === '国内'
   const currencyName = isDomestic ? '人民币' : '美元'
-  const currencySymbol = isDomestic ? '¥' : '¥'  
+  const currencySymbol = isDomestic ? '¥' : '$' 
 
   const scatterSeries = detailData.value.map(d => {
     const isWarning = d.price < targetPrice * 0.95
+    const baseSize = (d.volume / 100) * 12 + 10
+    const finalSize = Math.min(60, Math.max(15, baseSize))
+
     return {
       name: d.customer,
       value: [d.volume, d.price, d],
-      symbolSize: Math.max(15, (d.volume / 100) * 12 + 10),
+      symbolSize: finalSize, // 🌟 应用限制后的尺寸
       itemStyle: {
-        color: isWarning ? ChartTheme.colors.danger : ChartTheme.colors.primary, opacity: 0.8,
+        color: isWarning ? ChartTheme.colors.danger : ChartTheme.colors.primary, 
+        opacity: 0.8,
         shadowBlur: isWarning ? 15 : 5,
         shadowColor: isWarning ? 'rgba(239,68,68,0.4)' : 'rgba(0,0,0,0.1)'
       }
@@ -159,7 +166,6 @@ const detailChartOption = computed(() => {
       formatter: (params: any) => {
         const d = params.value[2]
         const diff = d.price - targetPrice
-        // 🌟 将销量、单价、偏差、偏差率都套用 Math.round 取整
         const diffPct = Math.round((diff / targetPrice) * 100)
         return `
           <div style="font-weight:800;font-size:15px;margin-bottom:8px">${d.customer}</div>
@@ -200,6 +206,11 @@ const detailChartOption = computed(() => {
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M15 18l-6-6 6-6"/></svg>
             返回全局看板
           </button>
+          <div class="view-toggle" v-if="selectedItem">
+            <button :class="{ active: viewType === 'today' }" @click="viewType = 'today'">当天</button>
+            <button :class="{ active: viewType === '7days' }" @click="viewType = '7days'">七天内</button>
+          </div>
+
           <div class="kpi-box" v-if="selectedItem">
             <span class="kpi-label">偏差率:</span>
             <span class="kpi-val" :class="selectedItem.deviationRate < 0 ? 'text-red' : 'text-green'">
@@ -262,5 +273,40 @@ const detailChartOption = computed(() => {
   .detail-dom  { min-height: 260px; }
   .detail-header { padding: 10px 12px; }
   .back-btn { padding: 6px 10px; font-size: 13px; }
+}
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  margin: 0 auto; /* 居中显示，如果空间不够会自动换行 */
+}
+.view-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.view-toggle button:hover {
+  color: #334155;
+}
+.view-toggle button.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* 可以对移动端稍作适配 */
+@media (max-width: 767px) {
+  .view-toggle button {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
 }
 </style>
