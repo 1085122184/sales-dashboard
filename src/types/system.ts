@@ -34,6 +34,51 @@ export interface RolePayload {
   remark?: string
 }
 
+export interface UserCreatePayload {
+  username: string
+  password: string
+  nickname?: string
+  realName?: string
+  email?: string
+  mobile?: string
+  status: number
+  roleIds: number[]
+}
+
+export interface UserUpdatePayload {
+  id: number
+  password?: string
+  nickname?: string
+  realName?: string
+  email?: string
+  mobile?: string
+  status: number
+  roleIds: number[]
+}
+
+export interface UserQuery {
+  pageNum: number
+  pageSize: number
+  username?: string
+  mobile?: string
+  status?: number | undefined
+}
+
+export interface UserItem {
+  id: number
+  username: string
+  nickname?: string
+  realName?: string
+  email?: string
+  mobile?: string
+  dingUserId?: string
+  status: number
+  roleIds: number[]
+  roleNames: string[]
+  createTime?: string
+  updateTime?: string
+}
+
 export interface MenuTreeNode {
   id: number
   menuName: string
