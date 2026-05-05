@@ -58,45 +58,81 @@ const chartOption = computed(() => {
   if (trend.length === 0) return {}
 
   const dates = trend.map(d => d.date)
-  const domesticVols = trend.map(d => d.domesticVolume)
-  const intlVols = trend.map(d => d.intlVolume)
-  const amounts = trend.map(d => d.amount)
+  
+  // 销量数据提取
+  const domesticVols = trend.map(d => d.domesticVolume || 0)
+  const intlVols = trend.map(d => d.intlVolume || 0)
+  const totalVols = trend.map(d => (d.domesticVolume || 0) + (d.intlVolume || 0))
+  
+  // 销售额数据提取 (兼容 trend 数组中可能没有细分 amount 的情况)
+  const domesticAmts = trend.map(d => d.domesticAmount || 0)
+  const intlAmts = trend.map(d => d.intlAmount || 0)
+  const totalAmts = trend.map(d => d.amount || 0)
+
+  // 判断当前模式
+  const isVol = props.mode === 'volume'
+
+  // 1. 动态配置 Y 轴名称和图例
+  const leftAxisName = isVol ? '销量 (吨)' : '销售额 (万元)'
+  const rightAxisName = isVol ? '销售额 (万元)' : '销量 (吨)'
+  const legendData = isVol ? ['国内销量', '国外销量', '销售额'] : ['国内销售额', '国外销售额', '总销量']
+
+  // 2. 动态配置 Series（柱状图和折线图数据翻转）
+  const series = isVol 
+    ? [
+        { name: '国内销量', type: 'bar', stack: 'volume', barWidth: '40%', itemStyle: { color: '#3182ce' }, data: domesticVols },
+        { name: '国外销量', type: 'bar', stack: 'volume', itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] }, data: intlVols },
+        { name: '销售额', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3, shadowColor: 'rgba(245,158,11,0.3)', shadowBlur: 8 }, data: totalAmts }
+      ]
+    : [
+        { name: '国内销售额', type: 'bar', stack: 'amount', barWidth: '40%', itemStyle: { color: '#f59e0b' }, data: domesticAmts },
+        { name: '国外销售额', type: 'bar', stack: 'amount', itemStyle: { color: '#fcd34d', borderRadius: [4, 4, 0, 0] }, data: intlAmts },
+        { name: '总销量', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#3182ce' }, lineStyle: { width: 3, shadowColor: 'rgba(49,130,206,0.3)', shadowBlur: 8 }, data: totalVols }
+      ]
 
   return {
     backgroundColor: 'transparent',
     grid: { left: 10, right: 10, top: 45, bottom: 0, containLabel: true },
     tooltip: {
-      trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(255, 255, 255, 0.98)', padding: [12, 16],
+      trigger: 'axis', 
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(255, 255, 255, 0.98)', 
+      padding: [12, 16],
       extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;',
       formatter: (params: any[]) => {
         let html = `<div style="font-weight:700;margin-bottom:8px;color:#1e293b">${params[0].axisValue}</div>`
-        let totalVol = 0
+        let sumBar = 0
+        let barHtml = ''
+        let lineHtml = ''
+
+        // 3. 动态组装 Tooltip
         params.forEach(p => {
-          if (p.seriesName.includes('销量')) {
-            totalVol += p.value
-            html += `<div style="color:#64748b;font-size:12px;margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:#1e293b">${Math.round(p.value).toLocaleString()} 吨</b></div>`
+          if (p.seriesType === 'bar') {
+            sumBar += p.value // 自动累加当前柱状图的堆叠总和
+            const unit = isVol ? '吨' : '万元'
+            barHtml += `<div style="color:#64748b;font-size:12px;margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:#1e293b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
           } else {
-             // 销售额使用千分位
-            html += `<div style="color:#64748b;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">${p.marker} ${p.seriesName}：<b style="color:#f59e0b">${Math.round(p.value).toLocaleString()} 万元</b></div>`
+            const unit = isVol ? '万元' : '吨'
+            lineHtml += `<div style="color:#64748b;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">${p.marker} ${p.seriesName}：<b style="color:#f59e0b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
           }
         })
-        html = html.replace('</div><div style="color:#64748b;font-size:12px;margin-top:6px', 
-               `</div><div style="color:#475569;font-size:12px;margin-bottom:3px;font-weight:600"><span style="display:inline-block;width:10px;margin-right:4px"></span>总销量：<b style="color:#1e293b">${Math.round(totalVol).toLocaleString()} 吨</b></div><div style="color:#64748b;font-size:12px;margin-top:6px`)
-        return html
+        
+        // 动态总和标题
+        const sumUnit = isVol ? '吨' : '万元'
+        const sumLabel = isVol ? '总销量' : '总销售额'
+        const sumHtml = `<div style="color:#475569;font-size:12px;margin-bottom:3px;font-weight:600"><span style="display:inline-block;width:10px;margin-right:4px"></span>${sumLabel}：<b style="color:#1e293b">${Math.round(sumBar).toLocaleString()} ${sumUnit}</b></div>`
+
+        // 拼接顺序：日期 -> 柱状图各部分 -> 柱状图总和 -> 折线图数值
+        return html + barHtml + sumHtml + lineHtml
       }
     },
-    legend: { data: ['国内销量', '国外销量', '销售额'], top: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: '#64748b', fontSize: 12 } },
+    legend: { data: legendData, top: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: '#64748b', fontSize: 12 } },
     xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisTick: { show: false }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
     yAxis: [
-      { type: 'value', name: '销量 (吨)', position: 'left', alignTicks: true, nameTextStyle: { color: '#94a3b8', fontSize: 11, align: 'right', padding: [0, 6, 0, 0] }, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
-      { type: 'value', name: '销售额 (万元)', position: 'right', alignTicks: true, nameTextStyle: { color: '#94a3b8', fontSize: 11, align: 'left', padding: [0, 0, 0, 6] }, splitLine: { show: false }, axisLabel: { color: '#94a3b8', fontSize: 11 } }
+      { type: 'value', name: leftAxisName, position: 'left', alignTicks: true, nameTextStyle: { color: '#94a3b8', fontSize: 11, align: 'right', padding: [0, 6, 0, 0] }, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
+      { type: 'value', name: rightAxisName, position: 'right', alignTicks: true, nameTextStyle: { color: '#94a3b8', fontSize: 11, align: 'left', padding: [0, 0, 0, 6] }, splitLine: { show: false }, axisLabel: { color: '#94a3b8', fontSize: 11 } }
     ],
-    series: [
-      { name: '国内销量', type: 'bar', stack: 'volume', barWidth: '40%', itemStyle: { color: '#3182ce' }, data: domesticVols },
-      { name: '国外销量', type: 'bar', stack: 'volume', itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] }, data: intlVols },
-      { name: '销售额', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3, shadowColor: 'rgba(245,158,11,0.3)', shadowBlur: 8 }, data: amounts }
-    ]
+    series: series
   }
 })
 </script>
@@ -143,7 +179,7 @@ const chartOption = computed(() => {
               <div class="val">¥{{ Math.round(detailData.kpi.avgPrice).toLocaleString() }}</div>
               <div class="kpi-sub">
                 <span>国内 <b class="c-domestic">¥{{ Math.round(detailData.kpi.domesticAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
-                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.intlAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.avgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
               </div>
             </div>
             <!-- <div class="kpi-card highlight">
