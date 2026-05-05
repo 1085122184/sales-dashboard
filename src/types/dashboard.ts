@@ -102,12 +102,20 @@ export interface SalesTrendProduct {
 }
 
 export interface ProductDeepKPI {
+  domesticAvgPrice: number
+  intlVolume: number
+  domesticVolume: number
+  intlAmount: number
+  domesticAmount: number
+  totalAmount: number
   totalVolume: number       
   avgPrice: number          
   profitEst: string         
 }
 
 export interface ProductDeepTrend {
+  intlAmount: number
+  domesticAmount: number
   date: string              
   domesticVolume: number    
   intlVolume: number        
@@ -115,6 +123,7 @@ export interface ProductDeepTrend {
 }
 
 export interface ProductDeepCustomer {
+  amount: number
   name: string              
   volume: number            
 }
