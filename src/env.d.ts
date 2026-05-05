@@ -36,6 +36,10 @@ interface DingTalkApi {
   error(callback: (error: unknown) => void): void
   runtime?: DingTalkRuntimeApi
   biz?: {
+    navigation?: {
+      close?: () => void
+      quit?: () => void
+    }
     util?: {
       openLink(options: {
         url: string

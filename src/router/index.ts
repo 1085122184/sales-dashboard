@@ -9,6 +9,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '登录' }
   },
   {
+    path: '/dingtalk-bridge',
+    name: 'DingTalkBridge',
+    component: () => import('@/views/auth/DingTalkBridgeView.vue'),
+    meta: { title: '钉钉中转' }
+  },
+  {
     path: '/403',
     name: 'Forbidden',
     component: () => import('@/views/error/ForbiddenView.vue'),

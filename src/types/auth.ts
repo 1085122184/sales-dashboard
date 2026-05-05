@@ -7,13 +7,13 @@ export interface DingTalkLoginRequest {
   authCode: string
 }
 
-export interface LoginTicketRequest {
-  ticket: string
+export interface DingTalkBridgeResponse {
+  externalUrl: string
+  expiresIn: number
 }
 
-export interface LoginTicketResponse {
+export interface LoginTicketRequest {
   ticket: string
-  expiresIn: number
 }
 
 export interface LoginUserInfo {

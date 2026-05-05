@@ -1,11 +1,11 @@
 import http from './http'
 import type {
   ApiResponse,
+  DingTalkBridgeResponse,
   DingTalkLoginRequest,
   LoginRequest,
   LoginResponse,
-  LoginTicketRequest,
-  LoginTicketResponse
+  LoginTicketRequest
 } from '@/types'
 
 export const login = async (data: LoginRequest) => {
@@ -18,8 +18,10 @@ export const loginByDingTalk = async (data: DingTalkLoginRequest) => {
   return res
 }
 
-export const createLoginTicket = async () => {
-  const res = await http.post<any, ApiResponse<LoginTicketResponse>>('/v1/auth/login-ticket')
+export const createPcDingTalkBridgeLogin = async (data: DingTalkLoginRequest, redirect?: string) => {
+  const res = await http.post<any, ApiResponse<DingTalkBridgeResponse>>('/v1/auth/dingtalk/bridge-login', data, {
+    params: { redirect }
+  })
   return res
 }
 

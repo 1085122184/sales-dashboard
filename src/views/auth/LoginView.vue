@@ -5,16 +5,16 @@
         <div class="brand-mark">SCM</div>
         <div>
           <h1 class="brand-title">销售系统登录</h1>
-          <p class="brand-copy">访问仪表盘、费用监控、订单明细和系统角色管理。</p>
+          <p class="brand-copy">移动端钉钉继续免密登录，PC 端改走钉钉中转页后打开系统浏览器。</p>
         </div>
         <div class="brand-metrics">
           <div class="metric-chip">
-            <span class="metric-label">认证方式</span>
-            <strong>钉钉免登 / 账号密码</strong>
+            <span class="metric-label">移动端</span>
+            <strong>钉钉容器免登</strong>
           </div>
           <div class="metric-chip">
-            <span class="metric-label">权限模型</span>
-            <strong>JWT + RBAC</strong>
+            <span class="metric-label">浏览器落地</span>
+            <strong>系统票据直登</strong>
           </div>
         </div>
       </section>
@@ -22,7 +22,7 @@
       <section class="form-panel">
         <div class="form-header">
           <h2>登录系统</h2>
-          <p>{{ dingTalkAvailable ? '正在尝试钉钉免密登录，也可以使用账号密码登录。' : '请输入账号和密码完成登录。' }}</p>
+          <p>{{ dingTalkAvailable ? '检测到移动端钉钉，正在尝试容器内免密登录。' : '请输入账号和密码完成登录。' }}</p>
         </div>
 
         <el-button
@@ -34,16 +34,6 @@
           @click="submitDingTalkLogin"
         >
           钉钉免密登录
-        </el-button>
-
-        <el-button
-          v-if="dingTalkDesktopAvailable"
-          size="large"
-          class="external-submit-btn"
-          :loading="externalOpening"
-          @click="openExternalBrowserAfterDingTalkLogin"
-        >
-          在本地浏览器打开
         </el-button>
 
         <el-divider v-if="dingTalkAvailable">或</el-divider>
@@ -88,7 +78,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { consumeLoginTicket, createLoginTicket, login, loginByDingTalk } from '@/api/auth-api'
+import { consumeLoginTicket, login, loginByDingTalk } from '@/api/auth-api'
 import { useGlobalStore } from '@/store/useGlobalStore'
 import type { LoginRequest, LoginResponse } from '@/types'
 
@@ -102,10 +92,8 @@ const store = useGlobalStore()
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const dingTalkSubmitting = ref(false)
-const externalOpening = ref(false)
 const loginMessage = ref('')
-const dingTalkAvailable = ref(isDingTalkContainer())
-const dingTalkDesktopAvailable = ref(isDingTalkDesktopContainer())
+const dingTalkAvailable = ref(isMobileDingTalkContainer())
 
 const form = reactive<LoginRequest>({
   username: '',
@@ -156,10 +144,6 @@ async function submitDingTalkLogin() {
   try {
     const authCode = await requestDingTalkAuthCode()
     const res = await loginByDingTalk({ authCode })
-    if (dingTalkDesktopAvailable.value) {
-      await openExternalBrowserWithPayload(res.data)
-      return
-    }
     handleLoginSuccess(res.data)
   } catch (error: any) {
     loginMessage.value = error?.message || '钉钉免密登录失败，请使用账号密码登录。'
@@ -168,43 +152,9 @@ async function submitDingTalkLogin() {
   }
 }
 
-async function openExternalBrowserAfterDingTalkLogin() {
-  if (externalOpening.value) return
-  externalOpening.value = true
-  loginMessage.value = ''
-  try {
-    if (store.isAuthenticated) {
-      await openExternalBrowserByTicket()
-      return
-    }
-    const authCode = await requestDingTalkAuthCode()
-    const res = await loginByDingTalk({ authCode })
-    await openExternalBrowserWithPayload(res.data)
-  } catch (error: any) {
-    loginMessage.value = error?.message || '打开本地浏览器失败，请使用账号密码登录。'
-  } finally {
-    externalOpening.value = false
-  }
-}
-
-async function openExternalBrowserWithPayload(payload: LoginResponse) {
-  store.setAuth(payload)
-  await openExternalBrowserByTicket()
-}
-
-async function openExternalBrowserByTicket() {
-  const res = await createLoginTicket()
-  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-  const externalUrl = new URL('/login', window.location.origin)
-  externalUrl.searchParams.set('loginTicket', res.data.ticket)
-  externalUrl.searchParams.set('redirect', redirect)
-  await openUrlInExternalBrowser(externalUrl.toString())
-  loginMessage.value = '已打开本地浏览器。如未弹出，请检查钉钉是否拦截外部打开。'
-}
-
 async function consumeExternalLoginTicket(ticket: string) {
   submitting.value = true
-  loginMessage.value = '正在使用钉钉登录票据进入系统...'
+  loginMessage.value = '正在使用钉钉中转票据进入系统...'
   try {
     const res = await consumeLoginTicket({ ticket })
     handleLoginSuccess(res.data)
@@ -222,14 +172,9 @@ function handleLoginSuccess(payload: LoginResponse) {
   router.replace(redirect)
 }
 
-function isDingTalkContainer() {
+function isMobileDingTalkContainer() {
   if (typeof navigator === 'undefined') return false
-  return /DingTalk/i.test(navigator.userAgent)
-}
-
-function isDingTalkDesktopContainer() {
-  if (!isDingTalkContainer()) return false
-  return !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  return /DingTalk/i.test(navigator.userAgent) && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
 }
 
 async function requestDingTalkAuthCode() {
@@ -284,26 +229,6 @@ function ensureDingTalkSdk() {
     }
     script.onerror = () => reject(new Error('钉钉 JSAPI 加载失败'))
     document.head.appendChild(script)
-  })
-}
-
-async function openUrlInExternalBrowser(url: string) {
-  const dd = await ensureDingTalkSdk()
-  await new Promise<void>((resolve, reject) => {
-    dd.ready(() => {
-      const openLink = dd.biz?.util?.openLink
-      if (openLink) {
-        openLink({
-          url,
-          onSuccess: resolve,
-          onFail: reject
-        })
-        return
-      }
-      window.open(url, '_blank', 'noopener,noreferrer')
-      resolve()
-    })
-    dd.error(reject)
   })
 }
 </script>
@@ -361,7 +286,6 @@ async function openUrlInExternalBrowser(url: string) {
   margin: 0;
   font-size: 40px;
   line-height: 1.08;
-  letter-spacing: 0;
 }
 
 .brand-copy {
@@ -422,17 +346,12 @@ async function openUrlInExternalBrowser(url: string) {
 }
 
 .submit-btn,
-.ding-submit-btn,
-.external-submit-btn {
+.ding-submit-btn {
   width: 100%;
   height: 46px;
   border-radius: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-}
-
-.external-submit-btn {
-  margin-top: 12px;
 }
 
 .submit-btn {
