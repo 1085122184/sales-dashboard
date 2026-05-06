@@ -9,7 +9,6 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSalesDetail } from '@/composables/useSalesDetail'
 
-// 组件引入 (路径已标准化)
 import BaseEChart from '@/components/charts/BaseEChart.vue'
 import { ChartSkeleton } from '@/components'
 import DetailTopBar from './components/DetailTopBar.vue'
