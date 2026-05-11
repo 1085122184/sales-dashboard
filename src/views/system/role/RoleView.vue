@@ -3,7 +3,6 @@
     <section class="hero-card">
       <div>
         <h1 class="hero-title">系统权限管理</h1>
-        <p class="hero-subtitle">账号和角色分开维护，角色负责菜单权限，账号负责登录身份和角色绑定。</p>
       </div>
       <div class="hero-actions">
         <el-button v-if="activeTab === 'users'" type="primary" @click="handleAddUser()">新增账号</el-button>
@@ -580,6 +579,21 @@ async function fetchMenuTree() {
   }
 }
 
+function getParentMenuIds(treeData: MenuTreeNode[]): number[] {
+  const parentIds: number[] = []
+  function traverse(nodes: MenuTreeNode[]) {
+    for (const node of nodes) {
+      // 如果存在 children 且长度大于 0，说明它是父节点
+      if (node.children && node.children.length > 0) {
+        parentIds.push(node.id)
+        traverse(node.children)
+      }
+    }
+  }
+  traverse(treeData)
+  return parentIds
+}
+
 function handleUserSearch() {
   userQueryForm.pageNum = 1
   fetchUserList()
@@ -846,8 +860,15 @@ async function handlePermission(row: RoleItem) {
 
   try {
     await fetchMenuTree()
+    
     const res = await getRoleMenuIds(row.id)
-    permissionDialog.checkedKeys = res.data || []
+    const allAssignedIds = res.data || []
+
+    const parentIds = getParentMenuIds(menuOptions.value)
+    const leafIdsToEcho = allAssignedIds.filter(id => !parentIds.includes(id))
+
+    permissionDialog.checkedKeys = leafIdsToEcho
+    
     await nextTick()
     menuTreeRef.value?.setCheckedKeys(permissionDialog.checkedKeys, false)
   } catch (error: any) {

@@ -2,19 +2,19 @@
   <div class="login-page">
     <div class="login-shell">
       <section class="brand-panel">
-        <div class="brand-mark">SCM</div>
+        <div class="brand-mark">DY</div>
         <div>
-          <h1 class="brand-title">销售系统登录</h1>
-          <p class="brand-copy">移动端钉钉继续免密登录，PC 端改走钉钉中转页后打开系统浏览器。</p>
+          <h1 class="brand-title">数据分析平台</h1>
+          <!-- <p class="brand-copy">移动端钉钉继续免密登录，PC 端改走钉钉中转页后打开系统浏览器。</p> -->
         </div>
         <div class="brand-metrics">
           <div class="metric-chip">
-            <span class="metric-label">移动端</span>
-            <strong>钉钉容器免登</strong>
+            <span class="metric-label">钉钉</span>
+            <strong>钉钉免密登录</strong>
           </div>
           <div class="metric-chip">
-            <span class="metric-label">浏览器落地</span>
-            <strong>系统票据直登</strong>
+            <span class="metric-label">浏览器</span>
+            <strong>账号密码直登</strong>
           </div>
         </div>
       </section>
