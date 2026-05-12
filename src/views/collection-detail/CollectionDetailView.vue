@@ -106,25 +106,6 @@ const trendChartOption = computed(() => {
   }
 })
 
-const ageingOption = computed(() => {
-  if (!currentDetail.value || !currentDetail.value.ageingData) return {}
-  return {
-    backgroundColor: 'transparent',
-    tooltip: { trigger: 'item', formatter: '{b}: {c}万 ({d}%)', backgroundColor: '#fff', borderColor: '#eef2f6', textStyle: { color: '#1e293b' } },
-    legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b' } },
-    color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-    series: [{
-      type: 'pie', radius: ['45%', '70%'], center: ['50%', '45%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false, position: 'center' },
-      emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#1e293b' } },
-      labelLine: { show: false },
-      data: currentDetail.value.ageingData
-    }]
-  }
-})
-
 // --- 🌟 核心修改：正式的 API 调用逻辑 ---
 async function fetchCompanyList() {
   loading.value = true

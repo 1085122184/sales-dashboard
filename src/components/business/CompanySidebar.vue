@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CompanySummaryMetric } from '@/types/index'
 
-const props = defineProps<{
+defineProps<{
   companyList: CompanySummaryMetric[]
   selectedId: number
   unit: string

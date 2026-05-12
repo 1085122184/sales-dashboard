@@ -35,11 +35,6 @@ function getRateLevelCached(rate: number): 'danger' | 'warning' | 'normal' {
   return 'normal'
 }
 
-// 格式化数字为保留两位小数的字符串
-const formatNumber = (num: number): string => {
-  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
 const tabCounts = computed(() => {
   // 预先计算所有分类以减少重复遍历
   let allCount = 0

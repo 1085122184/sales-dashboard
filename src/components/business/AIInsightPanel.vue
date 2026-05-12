@@ -62,10 +62,7 @@ async function generateInsight(signal: AbortSignal) {
       const cleanText = chunk.split('\n').map(line => line.replace(/^data:/, '').trim()).filter(line => line).join('');
       fullRawText += cleanText
 
-      // 2. 清洗 SSE 协议的 "data:" 前缀
-      const lines = chunk.split('\n')
-
-      // 3. 🛡️ 核心：动态剔除 <think> 标签及其内容
+      // 2. 动态剔除 <think> 标签及其内容
       // 先去掉已经闭合的 <think>...</think>
       let displayText = fullRawText.replace(/<think>[\s\S]*?<\/think>/g, '')
       // 再去掉还没闭合的 <think>... （即模型正在思考时的输出）

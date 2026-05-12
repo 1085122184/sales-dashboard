@@ -14,7 +14,6 @@ import PriceDeviationTable from './components/PriceDeviationTable.vue'
 import SalesTrendChart from './components/SalesTrendChart.vue'
 import SalesTrendTable from './components/SalesTrendTable.vue'
 import { MetricCardSkeleton, ChartSkeleton, TableSkeleton, DelayedSkeleton } from '@/components'
-import AIInsightPanel from '@/components/business/AIInsightPanel.vue'
 
 const store = useGlobalStore()
 const { isMaxMd } = useBreakpoint()
@@ -170,6 +169,7 @@ function handleTrendTabChange(tab: 'month' | 'year') {
               <PriceDeviationChart
                 :data="filteredPriceDeviations"
                 :selected-product="selectedProduct"
+                :date="store.backendDateStr"
                 @clear-selection="selectedProduct = null"
               />
             </template>

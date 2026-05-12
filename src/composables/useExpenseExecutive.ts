@@ -127,7 +127,7 @@ export function useExpenseExecutive() {
         AMOUNT: item.amount,
         TEXT: item.text
       }));
-    } catch (e: any) {
+    } catch {
       dailyDetailList.value = [];
     } finally { dailyDetailLoading.value = false; }
   }

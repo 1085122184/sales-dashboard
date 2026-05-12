@@ -152,7 +152,7 @@ const detailChartOption = computed(() => {
     if (trendTab.value === 'year') {
       const dateStr = String(t.date)
       let year = currentYear
-      let month = 0
+      let month: number
 
       // 兼容解析各种日期格式，如 "2024-05", "5月", "05" 等
       if (dateStr.includes('-')) {

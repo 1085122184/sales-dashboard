@@ -41,9 +41,14 @@ export interface CollectionMetric {
 }
 
 export interface CollectionDetailData {
-  customer: string
-  volume: number
-  amount: number
+  customer?: string
+  volume?: number
+  amount?: number
+  trendDate: string[]
+  trendActual: number[]
+  trendPlan: number[]
+  ageingData: { name: string; value: number }[]
+  topDebtors: { name: string; amount: number; days: number }[]
 }
 
 export interface OrderMetric {

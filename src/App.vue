@@ -9,7 +9,18 @@ const route = useRoute()
 const router = useRouter()
 const store = useGlobalStore()
 
-const hideChrome = computed(() => route.name === 'Login' || route.name === 'Forbidden')
+// 判断当前是否在不需要展示 Header 的页面（登录页不需要 Header 也不需要水印）
+const hideHeader = computed(() => route.name === 'Login' || route.name === 'Forbidden')
+
+// 动态计算水印内容
+const watermarkContent = computed(() => {
+  // 1. 如果是登录页，或者 store 中没有用户信息，不渲染水印
+  if (hideHeader.value || !store.displayName) {
+    return ''
+  }
+  // 2. 渲染多行水印：真实姓名 + 警示语 (如果有工号/手机号也可以拼接在此处)
+  return [`${store.displayName}`, '内部机密 严禁外传']
+})
 
 async function handleLogout() {
   try {
@@ -17,7 +28,7 @@ async function handleLogout() {
       await logout()
     }
   } catch {
-    // Ignore remote logout failure and clear local auth anyway.
+    // 忽略错误，强制本地退出
   } finally {
     store.clearAuth()
     ElMessage.success('已退出登录')
@@ -27,98 +38,146 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="app-wrapper">
-    <div v-if="!hideChrome" class="view-switcher">
-      <router-link to="/" class="switch-btn" :class="{ active: route.path === '/' }">
-        业务视角
-      </router-link>
-      <span v-if="store.displayName" class="user-badge">{{ store.displayName }}</span>
-      <button class="logout-btn" type="button" @click="handleLogout">退出</button>
-    </div>
+  <el-watermark
+    :content="watermarkContent"
+    :font="{ color: 'rgba(15, 23, 42, 0.08)', fontSize: 14 }"
+    :z-index="9999"
+    class="global-watermark-wrapper"
+  >
+    <div class="app-layout">
+      <header v-if="!hideHeader" class="global-header">
+        <div class="header-left">
+          <span class="system-name">销售监控系统</span>
+        </div>
+        <div class="header-right">
+          <span v-if="store.displayName" class="user-info">
+            <i class="user-icon">👤</i>
+            {{ store.displayName }}
+          </span>
+          <div class="divider"></div>
+          <button class="logout-btn" @click="handleLogout">退出登录</button>
+        </div>
+      </header>
 
-    <router-view v-slot="{ Component }">
-      <transition name="fade-slide" mode="out-in">
-        <component :is="Component" />
-      </transition>
-    </router-view>
-  </div>
+      <main class="app-main">
+        <router-view v-slot="{ Component }">
+          <transition name="fade-transform" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+    </div>
+  </el-watermark>
 </template>
 
-<style>
-.view-switcher {
-  position: fixed;
-  top: 20px;
-  right: 50%;
-  transform: translateX(50%);
-  z-index: 9999;
+<style scoped>
+/* 水印包裹层：需撑满全屏 */
+.global-watermark-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 整体布局结构 */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* 继承水印容器的高度 */
+  background-color: #f8fafc;
+}
+
+/* 标准头部样式 */
+.global-header {
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(8px);
-  padding: 6px 8px;
-  border-radius: 30px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  border: 1px solid #e2e8f0;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 1000;
 }
 
-.switch-btn,
-.logout-btn {
-  text-decoration: none;
-  padding: 6px 16px;
-  border-radius: 20px;
+.system-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
   font-size: 14px;
-  font-weight: 600;
+  color: #475569;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.user-icon {
+  margin-right: 6px;
+  font-style: normal;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: #e2e8f0;
+}
+
+/* 退出按钮样式 */
+.logout-btn {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
   color: #64748b;
   cursor: pointer;
-  transition: all 0.2s;
-  display: inline-block;
-  border: none;
-  background: transparent;
-  font-family: inherit;
+  transition: all 0.2s ease;
 }
 
-.switch-btn:hover,
 .logout-btn:hover {
-  color: #0f172a;
-  background: #f1f5f9;
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fda4af;
 }
 
-.switch-btn.active {
-  background: #3b82f6;
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+/* 主内容区 */
+.app-main {
+  flex: 1;
+  position: relative;
 }
 
-.user-badge {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 12px;
-  font-weight: 700;
+/* 页面切换动画 */
+.fade-transform-enter-active,
+.fade-transform-leave-active {
+  transition: all 0.3s ease;
 }
 
-@media (max-width: 767px) {
-  .view-switcher {
-    top: 12px;
-    gap: 6px;
-    padding: 5px 6px;
+.fade-transform-enter-from {
+  opacity: 0;
+  transform: translateX(-15px);
+}
+
+.fade-transform-leave-to {
+  opacity: 0;
+  transform: translateX(15px);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .system-name {
+    font-size: 16px;
   }
-
-  .switch-btn,
-  .logout-btn {
-    padding: 5px 12px;
-    font-size: 12px;
-  }
-
-  .user-badge {
+  .user-info {
     display: none;
   }
 }
-
-.fade-slide-enter-active,
-.fade-slide-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
-.fade-slide-enter-from { opacity: 0; transform: translateY(10px); }
-.fade-slide-leave-to { opacity: 0; transform: translateY(-10px); }
 </style>

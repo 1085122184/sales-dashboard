@@ -17,6 +17,7 @@ echarts.use([BarChart, ScatterChart, GridComponent, TooltipComponent, TitleCompo
 const props = defineProps<{
   data: PriceDeviationItem[]
   selectedProduct?: string | null
+  date: string
 }>()
 
 const emit = defineEmits<{ (e: 'clear-selection'): void }>()
@@ -34,13 +35,12 @@ const selectedItem = computed(() =>
 )
 
 // 🌟 监听切换，异步请求详细对账数据
-watch([() => props.selectedProduct, viewType], async ([newProduct, newType]) => {
+watch([() => props.selectedProduct, viewType, () => props.date], async ([newProduct, newType, date]) => {
   if (newProduct) {
     const [code, region] = newProduct.split('_')
     isDetailLoading.value = true
     try { 
-      // 传入 undefined 作为 date，传入 newType 作为 type
-      detailData.value = await getPriceDeviationDetails(code, region, undefined, newType) 
+      detailData.value = await getPriceDeviationDetails(code, region, date, newType)
     } finally { 
       isDetailLoading.value = false 
     }

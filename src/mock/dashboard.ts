@@ -34,6 +34,7 @@ export const mockSalesAmount: SalesMetric = {
 
 /** 回款金额 */
 export const mockCollection: CollectionMetric = {
+  label: '回款金额',
   amount: '28,768.00 万元',
   rate: 0.91,
   rateText: '91.00%',
@@ -62,7 +63,9 @@ export const mockYearOrders: OrderMetric = {
 /** 价格偏差列表 */
 export const mockPriceDeviations: PriceDeviationItem[] = [
   {
+    productCode: 'R32',
     product: 'R32',
+    region: '国内',
     sevenDayAvgPrice: 62524,
     todayAvgPrice: 62000,
     deviationAmount: -524,
@@ -71,7 +74,9 @@ export const mockPriceDeviations: PriceDeviationItem[] = [
     isAlert: false,
   },
   {
+    productCode: 'PTFE-XFZL',
     product: 'PTFE悬浮中粒',
+    region: '国内',
     sevenDayAvgPrice: 39893,
     todayAvgPrice: 39394,
     deviationAmount: -499,
@@ -80,7 +85,9 @@ export const mockPriceDeviations: PriceDeviationItem[] = [
     isAlert: false,
   },
   {
+    productCode: 'PTFE-FSSZ',
     product: 'PTFE分散树脂',
+    region: '国内',
     sevenDayAvgPrice: 44221,
     todayAvgPrice: 39307,
     deviationAmount: -4914,
@@ -89,7 +96,9 @@ export const mockPriceDeviations: PriceDeviationItem[] = [
     isAlert: true,
   },
   {
+    productCode: 'HFP',
     product: '六氟丙烯',
+    region: '国内',
     sevenDayAvgPrice: 39959,
     todayAvgPrice: 37304,
     deviationAmount: -2655,
@@ -98,7 +107,9 @@ export const mockPriceDeviations: PriceDeviationItem[] = [
     isAlert: true,
   },
   {
+    productCode: 'R152A',
     product: 'R152a',
+    region: '国内',
     sevenDayAvgPrice: 61254,
     todayAvgPrice: 60779,
     deviationAmount: -475,
@@ -107,7 +118,9 @@ export const mockPriceDeviations: PriceDeviationItem[] = [
     isAlert: false,
   },
   {
+    productCode: 'R134A',
     product: 'R134a',
+    region: '国内',
     sevenDayAvgPrice: 57766,
     todayAvgPrice: 51936,
     deviationAmount: -5830,
@@ -161,7 +174,9 @@ function makeTrend(
   const pChange = parseFloat(((prices[6] - prices[0]) / prices[0]).toFixed(4))
 
   return {
+    productCode: product.toUpperCase(),
     product,
+    region: '国内',
     latestDate: '02-13',
     latestVolume: volumes[6],
     latestPrice: prices[6],
