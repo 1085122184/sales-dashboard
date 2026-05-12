@@ -107,6 +107,8 @@ const trendChartOption = computed(() => {
 })
 
 // --- 🌟 核心修改：正式的 API 调用逻辑 ---
+void ageingOption
+
 async function fetchCompanyList() {
   loading.value = true
   try {

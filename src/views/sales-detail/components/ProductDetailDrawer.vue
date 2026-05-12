@@ -47,7 +47,7 @@ watch(trendTab, (newTab) => {
 function closeDrawer() {
   isVisible.value = false
   setTimeout(() => {
-    clearData() // 关掉时清空数据，防止下次打开看到旧数据闪烁
+    clearData() 
     emit('close')
   }, 300)
 }
@@ -64,7 +64,7 @@ const chartOption = computed(() => {
   const intlVols = trend.map(d => d.intlVolume || 0)
   const totalVols = trend.map(d => (d.domesticVolume || 0) + (d.intlVolume || 0))
   
-  // 销售额数据提取 (兼容 trend 数组中可能没有细分 amount 的情况)
+  // 销售额数据提取 
   const domesticAmts = trend.map(d => d.domesticAmount || 0)
   const intlAmts = trend.map(d => d.intlAmount || 0)
   const totalAmts = trend.map(d => d.amount || 0)
@@ -108,7 +108,7 @@ const chartOption = computed(() => {
         // 3. 动态组装 Tooltip
         params.forEach(p => {
           if (p.seriesType === 'bar') {
-            sumBar += p.value // 自动累加当前柱状图的堆叠总和
+            sumBar += p.value 
             const unit = isVol ? '吨' : '万元'
             barHtml += `<div style="color:#64748b;font-size:12px;margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:#1e293b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
           } else {

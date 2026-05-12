@@ -247,13 +247,11 @@ const budgetExecutionOption = computed(() => {
         const renderLine = (title: string, color: string, d: any) => {
           const diff = d.act - d.bud;
           let excessRate = 0;
-          
           if (d.bud !== 0) {
               excessRate = (diff / Math.abs(d.bud)) * 100;
           }
-
+          
           const rateStr = d.bud === 0 ? '--' : Math.abs(excessRate).toFixed(1) + '%';
-
           const diffHtml = diff > 0 
             ? `<span style="color:${CHART_COLORS.alert};font-weight:bold;">↑ 超支 ${diff.toFixed(2)}万 <small>(超额 ${rateStr})</small></span>` 
             : `<span style="color:${CHART_COLORS.success};">↓ 结余 ${(-diff).toFixed(2)}万 <small>(节省 ${rateStr})</small></span>`;
@@ -318,6 +316,43 @@ const trendChartOption = computed(() => {
   }
 })
 
+const leftChartOption = computed(() => {
+  if (!companyComparison.value.length) return {}
+  if (leftChartType.value === 'bar') {
+    return {
+      tooltip: { trigger: 'axis', backgroundColor: CHART_COLORS.tooltipBg, textStyle: { color: '#fff' } },
+      legend: { data: ['销售费用', '管理费用', '财务费用'], top: 0, right: 0, textStyle: { color: CHART_COLORS.axisLabel } },
+      grid: { top: 40, right: 20, bottom: 30, left: 50 },
+      xAxis: { type: 'category', data: companyComparison.value.map(d => d.name), axisLabel: { color: CHART_COLORS.axisLabel } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }, axisLabel: { color: CHART_COLORS.axisLabel } },
+      series: [
+        { name: '销售费用', type: 'bar', data: companyComparison.value.map(d => d.sales), barWidth: '25%', itemStyle: { color: CHART_COLORS.sales, borderRadius: [4, 4, 0, 0] } },
+        { name: '管理费用', type: 'bar', data: companyComparison.value.map(d => d.management), barWidth: '25%', itemStyle: { color: CHART_COLORS.management, borderRadius: [4, 4, 0, 0] } },
+        { name: '财务费用', type: 'bar', data: companyComparison.value.map(d => d.finance), barWidth: '25%', itemStyle: { color: CHART_COLORS.finance, borderRadius: [4, 4, 0, 0] } }
+      ]
+    }
+  } else {
+    return {
+      tooltip: { trigger: 'item', backgroundColor: CHART_COLORS.tooltipBg, textStyle: { color: '#fff' } },
+      legend: { data: companyComparison.value.map(d => d.name), bottom: 0, textStyle: { color: CHART_COLORS.axisLabel } },
+      radar: { indicator: [ { name: '销售费用', max: 2 }, { name: '管理费用', max: 2 }, { name: '财务费用', max: 1 } ], splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }, axisName: { color: CHART_COLORS.axisLabel } },
+      series: [{ type: 'radar', data: companyComparison.value.map((d, i) => ({ value: [d.sales, d.management, d.finance], name: d.name, itemStyle: { color: [CHART_COLORS.sales, CHART_COLORS.management, CHART_COLORS.finance, CHART_COLORS.warning][i] }, areaStyle: { opacity: 0.15 } })) }]
+    }
+  }
+})
+
+const rightChartOption = computed(() => {
+  if (!expenseStructure.value.length) return {}
+  const isDonut = rightChartType.value === 'donut'
+  return {
+    tooltip: { trigger: 'item', backgroundColor: CHART_COLORS.tooltipBg, textStyle: { color: '#fff' }, formatter: '{b}: {c}万 ({d}%)' },
+    legend: { orient: 'vertical', right: '8%', top: 'center', textStyle: { color: CHART_COLORS.axisLabel } },
+    series: [{ type: 'pie', radius: isDonut ? ['45%', '70%'] : '70%', center: ['40%', '50%'], itemStyle: { borderRadius: isDonut ? 8 : 0, borderColor: '#fff', borderWidth: 2 }, label: { show: false }, data: expenseStructure.value.map((item, index) => ({ value: item.value, name: item.name, itemStyle: { color: [CHART_COLORS.sales, CHART_COLORS.management, CHART_COLORS.finance][index] } })) }]
+  }
+})
+
+void leftChartOption
+void rightChartOption
 </script>
 
 <template>

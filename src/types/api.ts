@@ -15,9 +15,10 @@ export interface SalesDetailRecord {
   productName: string
   groupName?: string
   region: string
-  sales?: number
-  amount?: number
-  price?: number
+  groupName?: string
+  sales?: number | string
+  amount?: number | string
+  price?: number | string
   salesVolume: number
   salesAmount: number
   budgetVolume: number

@@ -162,3 +162,4 @@ onUnmounted(() => {
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
 </style>
+

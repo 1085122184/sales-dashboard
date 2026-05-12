@@ -40,6 +40,7 @@ watch([() => props.selectedProduct, viewType, () => props.date], async ([newProd
     const [code, region] = newProduct.split('_')
     isDetailLoading.value = true
     try { 
+      // 传入 undefined 作为 date，传入 newType 作为 type
       detailData.value = await getPriceDeviationDetails(code, region, date, newType)
     } finally { 
       isDetailLoading.value = false 
