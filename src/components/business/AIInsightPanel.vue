@@ -63,7 +63,6 @@ async function generateInsight(signal: AbortSignal) {
       fullRawText += cleanText
 
       // 2. 清洗 SSE 协议的 "data:" 前缀
-      const lines = chunk.split('\n')
 
       // 3. 🛡️ 核心：动态剔除 <think> 标签及其内容
       // 先去掉已经闭合的 <think>...</think>

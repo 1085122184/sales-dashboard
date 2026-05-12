@@ -9,9 +9,15 @@ export interface ApiResponse<T> {
 export interface SalesDetailRecord {
   id: string
   date: string
+  businessDate?: string
+  companyName?: string
   productCode: string
   productName: string
   region: string
+  groupName?: string
+  sales?: number | string
+  amount?: number | string
+  price?: number | string
   salesVolume: number
   salesAmount: number
   budgetVolume: number

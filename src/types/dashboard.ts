@@ -40,10 +40,26 @@ export interface CollectionMetric {
   monthTarget: number
 }
 
-export interface CollectionDetailData {
-  customer: string
-  volume: number
+export interface CollectionAgeingItem {
+  name: string
+  value: number
+}
+
+export interface CollectionDebtorItem {
+  name: string
   amount: number
+  days: number
+}
+
+export interface CollectionDetailData {
+  customer?: string
+  volume?: number
+  amount?: number
+  trendDate?: string[]
+  trendActual?: number[]
+  trendPlan?: number[]
+  ageingData?: CollectionAgeingItem[]
+  topDebtors?: CollectionDebtorItem[]
 }
 
 export interface OrderMetric {

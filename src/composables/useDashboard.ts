@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue' 
 import { useGlobalStore } from '@/store/useGlobalStore' 
 import { getDashboardMetrics, getDashboardOrders, getPriceDeviations as fetchPriceDeviations } from '@/api/dashboard-api'
-import type { SalesMetric, CollectionMetric, OrderMetric, PriceDeviationItem, DashboardData } from '@/types'
+import type { SalesMetric, CollectionMetric, OrderMetric, PriceDeviationItem } from '@/types'
 
 
 function formatThousands(val: string | number | undefined): string {

@@ -2,3 +2,4 @@ node_modules
 .qwen
 .claude
 backend-example
+dist

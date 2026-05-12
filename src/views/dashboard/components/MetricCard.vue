@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import ProgressBar from '@/components/base/ProgressBar.vue'
 import type { SalesMetric } from '@/types'
-import { formatLargeNumber } from '@/utils'
 
 interface Props {
   data: SalesMetric
   variant?: 'blue' | 'purple'
   clickable?: boolean
 }
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   variant: 'blue',
   clickable: false,
 })

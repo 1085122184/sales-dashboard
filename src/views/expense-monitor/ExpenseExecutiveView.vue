@@ -250,21 +250,11 @@ const budgetExecutionOption = computed(() => {
         const renderLine = (title: string, color: string, d: any) => {
           const diff = d.act - d.bud;
           let excessRate = 0;
-          let execRate = 0;
-          
           if (d.bud !== 0) {
               excessRate = (diff / Math.abs(d.bud)) * 100;
           }
           
-          if (d.bud > 0) {
-              execRate = (d.act / d.bud) * 100;
-          } else if (d.bud < 0) {
-              execRate = 100 + excessRate;
-          }
-          
           const rateStr = d.bud === 0 ? '--' : Math.abs(excessRate).toFixed(1) + '%';
-          const execRateStr = d.bud === 0 ? '--' : execRate.toFixed(1) + '%';
-
           const diffHtml = diff > 0 
             ? `<span style="color:${CHART_COLORS.alert};font-weight:bold;">↑ 超支 ${diff.toFixed(2)}万 <small>(超额 ${rateStr})</small></span>` 
             : `<span style="color:${CHART_COLORS.success};">↓ 结余 ${(-diff).toFixed(2)}万 <small>(节省 ${rateStr})</small></span>`;
@@ -364,6 +354,9 @@ const rightChartOption = computed(() => {
     series: [{ type: 'pie', radius: isDonut ? ['45%', '70%'] : '70%', center: ['40%', '50%'], itemStyle: { borderRadius: isDonut ? 8 : 0, borderColor: '#fff', borderWidth: 2 }, label: { show: false }, data: expenseStructure.value.map((item, index) => ({ value: item.value, name: item.name, itemStyle: { color: [CHART_COLORS.sales, CHART_COLORS.management, CHART_COLORS.finance][index] } })) }]
   }
 })
+
+void leftChartOption
+void rightChartOption
 </script>
 
 <template>

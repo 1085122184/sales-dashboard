@@ -22,7 +22,6 @@ let hiddenCanvasRef: HTMLCanvasElement | null = null
 let hiddenCtxRef: CanvasRenderingContext2D | null = null
 
 // 变动检测微型画布 (4x4 极低开销)
-let motionCanvasRef: HTMLCanvasElement | null = null
 let motionCtxRef: CanvasRenderingContext2D | null = null
 let prevMotionData: Uint8ClampedArray | null = null
 
@@ -107,7 +106,6 @@ const startCapture = async () => {
       motionCanvas.height = MOTION_CANVAS_DIM
       const mCtx = motionCanvas.getContext('2d', { willReadFrequently: true })
       if (!mCtx) return
-      motionCanvasRef = motionCanvas
       motionCtxRef = mCtx
       
       prevMotionData = null 
@@ -197,7 +195,6 @@ const stopCapture = () => {
   store.clearBoxes()
   
   prevMotionData = null
-  motionCanvasRef = null
   motionCtxRef = null
   hiddenCanvasRef = null
   hiddenCtxRef = null

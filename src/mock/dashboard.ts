@@ -34,6 +34,7 @@ export const mockSalesAmount: SalesMetric = {
 
 /** 回款金额 */
 export const mockCollection: CollectionMetric = {
+  label: 'collection',
   amount: '28,768.00 万元',
   rate: 0.91,
   rateText: '91.00%',
@@ -60,7 +61,7 @@ export const mockYearOrders: OrderMetric = {
 }
 
 /** 价格偏差列表 */
-export const mockPriceDeviations: PriceDeviationItem[] = [
+const rawMockPriceDeviations = [
   {
     product: 'R32',
     sevenDayAvgPrice: 62524,
@@ -118,6 +119,12 @@ export const mockPriceDeviations: PriceDeviationItem[] = [
 ]
 
 /** 获取所有仪表盘数据（模拟异步接口） */
+export const mockPriceDeviations: PriceDeviationItem[] = rawMockPriceDeviations.map((item) => ({
+  productCode: item.product.toUpperCase(),
+  region: 'domestic',
+  ...item,
+}))
+
 export async function fetchDashboardData() {
   // 模拟网络延迟 300ms
   await new Promise((resolve) => setTimeout(resolve, 300))
@@ -141,6 +148,7 @@ function makeTrend(
   volumes: number[],
   prices: number[],
 ): SalesTrendProduct {
+  const productCode = product.toUpperCase()
   const dates = ['02-07','02-08','02-09','02-10','02-11','02-12','02-13']
   const trend = dates.map((date, i) => ({
     date, volume: volumes[i], price: prices[i],
@@ -161,7 +169,9 @@ function makeTrend(
   const pChange = parseFloat(((prices[6] - prices[0]) / prices[0]).toFixed(4))
 
   return {
+    productCode,
     product,
+    region: 'domestic',
     latestDate: '02-13',
     latestVolume: volumes[6],
     latestPrice: prices[6],
