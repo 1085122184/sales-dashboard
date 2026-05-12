@@ -13,7 +13,6 @@ export interface SalesDetailRecord {
   companyName?: string
   productCode: string
   productName: string
-  groupName?: string
   region: string
   groupName?: string
   sales?: number | string
