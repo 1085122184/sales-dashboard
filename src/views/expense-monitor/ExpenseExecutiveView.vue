@@ -15,6 +15,8 @@ const {
   growthLoading,        
   companyGrowthData,    
   overview,
+  companyComparison,
+  expenseStructure,
   expenseTrend,
   companyDetail,
   dailyDetailList,
@@ -28,6 +30,8 @@ const {
 } = useExpenseExecutive()
 
 const growthViewType = ref<'yoy' | 'mom'>('yoy')
+const leftChartType = ref<'bar' | 'radar'>('bar')
+const rightChartType = ref<'donut' | 'pie'>('donut')
 
 // 列表搜索输入框双向绑定
 const searchQuery = computed({
