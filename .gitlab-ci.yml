@@ -1,34 +1,46 @@
 stages:
+  - build
   - deploy
 
 variables:
   DEPLOY_DIR: "/home/dyroot/workspace/data_analysis"
 
-deploy_frontend:
-  stage: deploy
-  image:
-    name: node:22-alpine
+build_frontend:
+  stage: build
+  image: node:22-alpine
   tags:
     - prod-deploy
+  script:
+    - npm config set registry https://registry.npmmirror.com
+    - npm ci --no-audit --no-fund
+    - npm run build
+    - mkdir -p release
+    - cp -r dist release/dist
+  artifacts:
+    paths:
+      - release/dist
+    expire_in: 1 day
+
+deploy_frontend:
+  stage: deploy
+  image: alpine:3.20
+  tags:
+    - prod-deploy
+  needs:
+    - build_frontend
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "auth_branch"'
       when: manual
   before_script:
     - apk add --no-cache openssh-client rsync
-    - test -n "$DEPLOY_HOST"
-    - test -n "$DEPLOY_USER"
-    - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}"
     - eval "$(ssh-agent -s)"
     - chmod 400 "$DEPLOY_SSH_PRIVATE_KEY"
     - ssh-add "$DEPLOY_SSH_PRIVATE_KEY"
     - mkdir -p ~/.ssh
     - ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
   script:
-    - npm config set registry https://registry.npmmirror.com
-    - npm ci --no-audit --no-fund
-    - npm run build
     - ssh -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_DIR/frontend/dist'"
-    - rsync -az --delete -e "ssh -p ${DEPLOY_PORT:-22}" dist/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_DIR/frontend/dist/"
+    - rsync -az --delete -e "ssh -p ${DEPLOY_PORT:-22}" release/dist/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_DIR/frontend/dist/"
     - |
       ssh -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "
         set -e
