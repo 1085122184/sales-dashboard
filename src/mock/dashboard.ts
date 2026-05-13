@@ -120,9 +120,9 @@ const rawMockPriceDeviations = [
 
 /** 获取所有仪表盘数据（模拟异步接口） */
 export const mockPriceDeviations: PriceDeviationItem[] = rawMockPriceDeviations.map((item) => ({
+  ...item,
   productCode: item.product.toUpperCase(),
   region: 'domestic',
-  ...item,
 }))
 
 export async function fetchDashboardData() {
