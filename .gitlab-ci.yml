@@ -8,6 +8,8 @@ variables:
 build_frontend:
   stage: build
   image: node:22-alpine
+  tags:
+    - prod-deploy
   script:
     - npm config set registry https://registry.npmmirror.com
     - npm ci --no-audit --no-fund
@@ -22,6 +24,8 @@ build_frontend:
 deploy_frontend:
   stage: deploy
   image: alpine:3.20
+  tags:
+    - prod-deploy
   needs:
     - build_frontend
   rules:
