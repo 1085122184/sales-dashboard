@@ -1,0 +1,352 @@
+<script setup lang="ts">
+import { ref, onMounted, computed, watch } from 'vue'
+import BaseEChart from '@/components/charts/BaseEChart.vue'
+import { useProductDetail } from '@/composables/useProductDetail' // 🌟 引入刚写的 composable
+
+const props = defineProps<{
+  productCode: string
+  productName: string
+  companyName: string
+  yesterday: string
+  mode: string
+}>()
+
+const sortedCustomers = computed(() => {
+  const list = [...(detailData.value?.topCustomers || [])]
+  if (props.mode === 'volume') {
+    return list.sort((a, b) => b.volume - a.volume)
+  } else {
+    return list.sort((a, b) => (b.amount || 0) - (a.amount || 0))
+  }
+})
+
+const maxMetricValue = computed(() => {
+  if (sortedCustomers.value.length === 0) return 0
+  const top = sortedCustomers.value[0]
+  return props.mode === 'volume' ? top.volume : (top.amount || 0)
+})
+
+const emit = defineEmits<{ (e: 'close'): void }>()
+const isVisible = ref(false)
+const trendTab = ref<'month' | 'year'>('month')
+
+// 🌟 直接解构拿出所有状态和方法
+const { loading, chartLoading, detailData, fetchDetail, clearData } = useProductDetail()
+
+onMounted(() => {
+  setTimeout(() => isVisible.value = true, 50)
+  // 组件挂载时，去拉取真实的当月数据
+  fetchDetail(props.companyName, props.productCode, 'month')
+})
+
+// 监听 Tab 切换，重新去拿真实数据
+watch(trendTab, (newTab) => {
+  fetchDetail(props.companyName, props.productCode, newTab)
+})
+
+function closeDrawer() {
+  isVisible.value = false
+  setTimeout(() => {
+    clearData() 
+    emit('close')
+  }, 300)
+}
+
+// 🌟 图表配置
+const chartOption = computed(() => {
+  const trend = detailData.value?.trend || []
+  if (trend.length === 0) return {}
+
+  const dates = trend.map(d => d.date)
+  
+  // 销量数据提取
+  const domesticVols = trend.map(d => d.domesticVolume || 0)
+  const intlVols = trend.map(d => d.intlVolume || 0)
+  const totalVols = trend.map(d => (d.domesticVolume || 0) + (d.intlVolume || 0))
+  
+  // 销售额数据提取 
+  const domesticAmts = trend.map(d => d.domesticAmount || 0)
+  const intlAmts = trend.map(d => d.intlAmount || 0)
+  const totalAmts = trend.map(d => d.amount || 0)
+
+  // 判断当前模式
+  const isVol = props.mode === 'volume'
+
+  // 1. 动态配置 Y 轴名称和图例
+  const leftAxisName = isVol ? '销量 (吨)' : '销售额 (万元)'
+  const rightAxisName = isVol ? '销售额 (万元)' : '销量 (吨)'
+  const legendData = isVol ? ['国内销量', '国外销量', '销售额'] : ['国内销售额', '国外销售额', '总销量']
+
+  // 2. 动态配置 Series（柱状图和折线图数据翻转）
+  const series = isVol 
+    ? [
+        { name: '国内销量', type: 'bar', stack: 'volume', barWidth: '40%', itemStyle: { color: '#3182ce' }, data: domesticVols },
+        { name: '国外销量', type: 'bar', stack: 'volume', itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] }, data: intlVols },
+        { name: '销售额', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3, shadowColor: 'rgba(245,158,11,0.3)', shadowBlur: 8 }, data: totalAmts }
+      ]
+    : [
+        { name: '国内销售额', type: 'bar', stack: 'amount', barWidth: '40%', itemStyle: { color: '#f59e0b' }, data: domesticAmts },
+        { name: '国外销售额', type: 'bar', stack: 'amount', itemStyle: { color: '#fcd34d', borderRadius: [4, 4, 0, 0] }, data: intlAmts },
+        { name: '总销量', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#3182ce' }, lineStyle: { width: 3, shadowColor: 'rgba(49,130,206,0.3)', shadowBlur: 8 }, data: totalVols }
+      ]
+
+  return {
+    backgroundColor: 'transparent',
+    grid: { left: 10, right: 10, top: 45, bottom: 0, containLabel: true },
+    tooltip: {
+      trigger: 'axis', 
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(255, 255, 255, 0.98)', 
+      padding: [12, 16],
+      extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;',
+      formatter: (params: any[]) => {
+        let html = `<div style="font-weight:700;margin-bottom:8px;color:#1e293b">${params[0].axisValue}</div>`
+        let sumBar = 0
+        let barHtml = ''
+        let lineHtml = ''
+
+        // 3. 动态组装 Tooltip
+        params.forEach(p => {
+          if (p.seriesType === 'bar') {
+            sumBar += p.value 
+            const unit = isVol ? '吨' : '万元'
+            barHtml += `<div style="color:#64748b;font-size:12px;margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:#1e293b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
+          } else {
+            const unit = isVol ? '万元' : '吨'
+            lineHtml += `<div style="color:#64748b;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">${p.marker} ${p.seriesName}：<b style="color:#f59e0b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
+          }
+        })
+        
+        // 动态总和标题
+        const sumUnit = isVol ? '吨' : '万元'
+        const sumLabel = isVol ? '总销量' : '总销售额'
+        const sumHtml = `<div style="color:#475569;font-size:12px;margin-bottom:3px;font-weight:600"><span style="display:inline-block;width:10px;margin-right:4px"></span>${sumLabel}：<b style="color:#1e293b">${Math.round(sumBar).toLocaleString()} ${sumUnit}</b></div>`
+
+        // 拼接顺序：日期 -> 柱状图各部分 -> 柱状图总和 -> 折线图数值
+        return html + barHtml + sumHtml + lineHtml
+      }
+    },
+    legend: { data: legendData, top: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: '#64748b', fontSize: 12 } },
+    xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisTick: { show: false }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
+    yAxis: [
+      { type: 'value', name: leftAxisName, position: 'left', alignTicks: true, nameTextStyle: { color: '#94a3b8', fontSize: 11, align: 'right', padding: [0, 6, 0, 0] }, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
+      { type: 'value', name: rightAxisName, position: 'right', alignTicks: true, nameTextStyle: { color: '#94a3b8', fontSize: 11, align: 'left', padding: [0, 0, 0, 6] }, splitLine: { show: false }, axisLabel: { color: '#94a3b8', fontSize: 11 } }
+    ],
+    series: series
+  }
+})
+</script>
+
+<template>
+  <div class="drawer-wrapper">
+    <div class="drawer-mask" :class="{ 'mask-show': isVisible }" @click="closeDrawer"></div>
+    
+    <div class="drawer-panel" :class="{ 'panel-show': isVisible }">
+      <header class="drawer-hd">
+        <div class="hd-left">
+          <div class="breadcrumb">{{ companyName }} / 产品穿透</div>
+          <h2>{{ productName }} </h2>
+        </div>
+        <button class="close-btn" @click="closeDrawer">✕</button>
+      </header>
+
+      <div class="drawer-body">
+        <div v-if="loading" class="loading-state">
+          <div class="spinner"></div>
+          <p>正在加载...</p>
+        </div>
+        
+        <div v-else-if="detailData" class="content-scroll">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}累计销量</div>
+              <div class="val">{{ Math.round(detailData.kpi.totalVolume).toLocaleString() }} <span>吨</span></div>
+              <div class="kpi-sub">
+                <span>国内 <b class="c-domestic">{{ Math.round(detailData.kpi.domesticVolume || 0).toLocaleString() }}</b> <span>吨</span></span>
+                <span>国外 <b class="c-intl">{{ Math.round(detailData.kpi.intlVolume || 0).toLocaleString() }}</b> <span>吨</span></span>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}累计销售额</div>
+              <div class="val">{{ Math.round(detailData.kpi.totalAmount || (detailData.kpi.totalVolume * detailData.kpi.avgPrice / 10000)).toLocaleString() }} <span>万元</span></div>
+              <div class="kpi-sub">
+                <span>国内 <b class="c-domestic">{{ Math.round(detailData.kpi.domesticAmount || 0).toLocaleString() }}</b> <span>万元</span></span>
+                <span>国外 <b class="c-intl">{{ Math.round(detailData.kpi.intlAmount || 0).toLocaleString() }}</b> <span>万元</span></span>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}均价</div>
+              <div class="val">¥{{ Math.round(detailData.kpi.avgPrice).toLocaleString() }}</div>
+              <div class="kpi-sub">
+                <span>国内 <b class="c-domestic">¥{{ Math.round(detailData.kpi.domesticAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.avgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+              </div>
+            </div>
+            <!-- <div class="kpi-card highlight">
+              <div class="lbl">利润贡献预估</div>
+              <div class="val" :class="detailData.kpi.profitEst.startsWith('-') ? 'c-red' : 'c-green'">{{ detailData.kpi.profitEst }}</div>
+            </div> -->
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-box-hd">
+              <h3>结构与走势分析</h3>
+              <div class="trend-tabs">
+                <button :class="{ active: trendTab === 'month' }" @click="trendTab = 'month'">本月</button>
+                <button :class="{ active: trendTab === 'year' }" @click="trendTab = 'year'">本年</button>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div v-if="chartLoading" class="chart-mask"><div class="spinner-small"></div></div>
+              <BaseEChart :option="chartOption" height="280px" />
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h3>本年核心采购客户 Top 20 (按{{ mode === 'volume' ? '销量' : '销售额' }}排序)</h3>
+            <div class="customer-list">
+              <div class="cust-item" v-for="(cust, i) in sortedCustomers" :key="i">
+                <span class="rank" :class="{ 'top-three': i < 3 }">{{ i + 1 }}</span>
+                <span class="c-name" :title="cust.name">{{ cust.name }}</span>
+                <div class="bar-bg">
+                  <div class="bar-fill" 
+                    :class="mode === 'amount' ? 'bar-amount' : 'bar-volume'"
+                    :style="{ width: maxMetricValue > 0 ? 
+                    ((mode === 'volume' ? cust.volume : cust.amount) / maxMetricValue) * 100 + '%' : '0%' }">
+                 </div>
+                </div>
+                <div class="c-vals">
+                  <div class="val-line" :class="{ 'is-active': mode === 'volume' }">
+                    {{ Math.round(cust.volume).toLocaleString() }} <small>吨</small>
+                  </div>
+                  <div class="val-line" :class="{ 'is-active': mode === 'amount' }">
+                    {{ Math.round(cust.amount || 0).toLocaleString() }} <small>万</small>
+                  </div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* 保持原有基础布局样式 */
+.drawer-wrapper { position: fixed; inset: 0; z-index: 1000; overflow: hidden; display: flex; justify-content: flex-end; }
+.drawer-mask {
+   position: absolute; inset: 0; background: rgba(15, 23, 42, 0.4); 
+   /* backdrop-filter: blur(2px);  */
+   opacity: 0; transition: opacity 0.3s ease; }
+.drawer-mask.mask-show { opacity: 1; }
+.drawer-panel { position: relative; width: 1080px; max-width: 90vw; background: #f8fafc; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: -10px 0 30px rgba(0,0,0,0.1);will-change: transform; }
+.drawer-panel.panel-show { transform: translateX(0); }
+
+/* 头部 */
+.drawer-hd { padding: 24px 30px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; }
+.breadcrumb { font-size: 13px; color: #64748b; margin-bottom: 6px; }
+.drawer-hd h2 { font-size: 24px; color: #1e293b; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+.badge { font-size: 12px; background: #dcfce7; color: #16a34a; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+.close-btn { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; color: #64748b; cursor: pointer; transition: all 0.2s; }
+.close-btn:hover { background: #e2e8f0; color: #1e293b; transform: rotate(90deg); }
+
+/* 内容区与 KPI */
+.drawer-body { flex: 1; overflow-y: auto; padding: 24px 30px; }
+.content-scroll { display: flex; flex-direction: column; gap: 24px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.kpi-card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
+.kpi-card.highlight { background: #eff6ff; border-color: #bfdbfe; }
+.lbl { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+.val { font-size: 24px; font-weight: 800; color: #1e293b; }
+.val span { font-size: 14px; font-weight: 500; margin-left: 2px; }
+.c-green { color: #10b981; }
+
+/* 🌟 图表容器与切换 Tab 样式 */
+.chart-box { background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+.chart-box-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.chart-box h3 { font-size: 16px; font-weight: 700; color: #1e293b; padding-left: 10px; border-left: 4px solid #3182ce; }
+
+.trend-tabs { display: flex; background: #f1f5f9; padding: 3px; border-radius: 6px; }
+.trend-tabs button { border: none; background: transparent; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; }
+.trend-tabs button:hover { color: #334155; }
+.trend-tabs button.active { background: #fff; color: #3182ce; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+.chart-container { position: relative; min-height: 280px; }
+.chart-mask { position: absolute; inset: 0; background: rgba(255,255,255,0.6); backdrop-filter: blur(1px); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.spinner-small { width: 24px; height: 24px; border: 2px solid #e2e8f0; border-top-color: #3182ce; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+/* 客户列表 */
+.customer-list { display: flex; flex-direction: column; gap: 16px; margin-top: 20px;}
+.cust-item { display: flex; align-items: center; gap: 12px; }
+.rank { width: 24px; height: 24px; background: #f1f5f9; color: #64748b; display: flex; justify-content: center; align-items: center; border-radius: 6px; font-weight: 700; font-size: 12px; }
+.cust-item:nth-child(1) .rank { background: #fee2e2; color: #dc2626; }
+.cust-item:nth-child(2) .rank { background: #fef3c7; color: #d97706; }
+.cust-item:nth-child(3) .rank { background: #fef9c3; color: #ca8a04; }
+.c-name { width: 180px; font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-bg { flex: 1; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: #3182ce; border-radius: 4px; }
+.c-val { width: 60px; text-align: right; font-size: 13px; font-weight: 600; color: #1e293b; }
+
+/* Loading 状态 */
+.loading-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; }
+.spinner { width: 30px; height: 30px; border: 3px solid #e2e8f0; border-top-color: #3182ce; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+@media (max-width: 767px) {
+  .drawer-panel { width: 100vw; max-width: 100vw; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .c-name { width: 100px; }
+  .chart-box-hd { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* 🌟 新增：KPI卡片底部细分样式 */
+.kpi-sub {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.kpi-sub span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi-sub b {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+.c-domestic { color: #3182ce; } /* 国内数据颜色：品牌蓝 */
+.c-intl { color: #8b5cf6; }     /* 国外数据颜色：紫色区分 */
+
+.customer-list { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.cust-item { display: flex; align-items: center; gap: 14px; height: 36px; }
+
+/* 排名样式 */
+.rank { width: 22px; height: 22px; background: #f1f5f9; color: #64748b; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.top-three { background: #eff6ff; color: #3182ce; }
+
+.c-name { width: 140px; font-size: 13px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bar-bg { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; position: relative; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.bar-volume { background: #3182ce; }
+.bar-amount { background: #f59e0b; }
+
+/* 数值列样式 */
+.c-vals { width: 100px; display: flex; flex-direction: column; justify-content: center; line-height: 1.2; text-align: right; }
+.val-line { font-size: 12px; color: #94a3b8; }
+.val-line small { font-size: 10px; margin-left: 1px; }
+.val-line.is-active { font-size: 13px; color: #1e293b; font-weight: 700; }
+
+@media (max-width: 767px) {
+  .c-name { width: 80px; }
+  .c-vals { width: 70px; }
+}
+</style>

@@ -1,0 +1,97 @@
+/* =============================
+   CSS 变量 & 全局样式
+   ============================= */
+:root {
+  --color-primary: #3b82f6;
+  --color-primary-light: #60a5fa;
+  --color-primary-bg: #eff6ff;
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-success-bg: #ecfdf5;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-purple: #a855f7;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  --color-bg-page: #eef2f7;
+  --color-bg-card: #ffffff;
+  --color-bg-header: #e8f0fe;
+  --color-border: #e2e8f0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 20px rgba(59, 130, 246, 0.12);
+  --font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* ── 桌面端字号（原始值，保持不变） ── */
+  --fs-xs:   16px;
+  --fs-sm:   18px;
+  --fs-base: 20px;
+  --fs-md:   22px;
+  --fs-lg:   24px;
+  --fs-xl:   34px;
+  --fs-2xl:  36px;
+}
+
+/* ── 平板：1024px 以下 ── */
+@media (max-width: 1023px) {
+  :root {
+    --fs-xs:   13px;
+    --fs-sm:   14px;
+    --fs-base: 15px;
+    --fs-md:   17px;
+    --fs-lg:   19px;
+    --fs-xl:   26px;
+    --fs-2xl:  28px;
+    --radius-lg: 12px;
+  }
+}
+
+/* ── 手机：768px 以下 ── */
+@media (max-width: 767px) {
+  :root {
+    --fs-xs:   12px;
+    --fs-sm:   13px;
+    --fs-base: 14px;
+    --fs-md:   15px;
+    --fs-lg:   17px;
+    --fs-xl:   22px;
+    --fs-2xl:  24px;
+    --radius-lg: 10px;
+  }
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: var(--fs-base);
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden; /* 防手机横向溢出 */
+}
+
+@media (max-width: 1023px) {
+  * { -webkit-tap-highlight-color: transparent; }
+}
+
+#app { min-height: 100vh; }
+
+.number { font-variant-numeric: tabular-nums; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #93c5fd, #60a5fa); border-radius: 9999px; border: 1px solid #f1f5f9; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #60a5fa, #3b82f6); }
+::-webkit-scrollbar-corner { background: transparent; }
+* { scrollbar-width: thin; scrollbar-color: #93c5fd #f1f5f9; }
