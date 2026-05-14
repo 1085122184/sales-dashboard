@@ -8,4 +8,5 @@
  */
 
 export * from './dashboard-api'
+export * from './production-api'
 export { default as http } from './http'

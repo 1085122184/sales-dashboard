@@ -72,6 +72,18 @@ const routes: Array<RouteRecordRaw> = [
     name: 'ExpenseExecutive',
     meta: { title: '集团三费高管驾驶舱' },
     component: () => import('@/views/expense-monitor/ExpenseExecutiveView.vue')
+  },
+  {
+    path: '/production-dashboard',
+    name: 'ProductionDashboard',
+    meta: { title: '生产运营指标大盘' },
+    component: () => import('@/views/production/ProductionDashboardView.vue')
+  },
+  {
+    path: '/production-detail',
+    name: 'ProductionDetail',
+    meta: { title: '生产明细数据' },
+    component: () => import('@/views/production/ProductionDetailView.vue')
   }
   // 未来您可以在这里继续添加二级页面，例如：
   // {
@@ -96,7 +108,7 @@ const router = createRouter({
 // 3. 全局前置路由守卫：用于动态修改网页标题
 router.beforeEach((to, _from, next) => {
   if (to.meta.title) {
-    document.title = `${to.meta.title} - 销售系统`
+    document.title = `${to.meta.title} - 经营分析系统`
   }
   next()
 })

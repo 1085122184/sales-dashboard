@@ -11,6 +11,7 @@ import {
   getCompanyGrowthData
 } from '@/api/expense-api'
 import type { BudgetExecutionRecord } from '@/api/expense-api' 
+import { getCompanyCodeFromRecord, sortByCompanyOrder } from '@/utils/companyOrder'
 
 // 🌟 核心规范：所有业务类型全部从统一的类型契约中心引入
 import type { 
@@ -57,7 +58,7 @@ export function useExpenseExecutive() {
   const detailMonth = ref(store.backendDateStr ? store.backendDateStr.slice(0, 7) : new Date().toISOString().slice(0, 7))
   const searchKeyword = ref('')
   const currentPage = ref(1)
-  const pageSize = ref(10)
+  const pageSize = ref(20)
   const timeDimension = ref<'month' | 'year'>('month') 
 
   async function loadOverview() { 
@@ -74,7 +75,7 @@ export function useExpenseExecutive() {
     comparisonLoading.value = true
     try {
       const data = await getExpenseCompanyComparison(store.backendDateStr)
-      companyComparison.value = data
+      companyComparison.value = sortByCompanyOrder(data, item => item.name, getCompanyCodeFromRecord)
     } catch (e: any) {
       error.value = e.message || '获取公司对比数据失败'
     } finally { comparisonLoading.value = false }
@@ -111,7 +112,10 @@ export function useExpenseExecutive() {
         page: currentPage.value,
         pageSize: pageSize.value
       })
-      companyDetail.value = data
+      companyDetail.value = {
+        ...data,
+        list: sortByCompanyOrder(data?.list || [], item => item.name, getCompanyCodeFromRecord)
+      }
     } catch (e: any) {
       error.value = e.message || '获取公司明细数据失败'
     } finally { detailLoading.value = false }
@@ -139,7 +143,7 @@ export function useExpenseExecutive() {
         date: store.backendDateStr,
         dimension: timeDimension.value
       })
-      budgetExecutionList.value = data || []
+      budgetExecutionList.value = sortByCompanyOrder(data, item => item.companyName, getCompanyCodeFromRecord)
     } catch (e: any) {
       error.value = e.message || '获取预算执行数据失败'
     } finally {
@@ -151,7 +155,7 @@ export function useExpenseExecutive() {
     growthLoading.value = true
     try {
       const data = await getCompanyGrowthData({ date: store.backendDateStr })
-      companyGrowthData.value = data || []
+      companyGrowthData.value = sortByCompanyOrder(data, item => item.companyName, getCompanyCodeFromRecord)
     } catch (e: any) {
       console.error('获取同环比增长数据失败:', e)
     } finally {
