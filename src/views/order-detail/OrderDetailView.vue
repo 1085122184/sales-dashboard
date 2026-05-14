@@ -7,6 +7,7 @@ import { ChartSkeleton } from '@/components'
 
 import DetailTopBar from '@/components/business/DetailTopBar.vue'
 import CompanySidebar from '@/components/business/CompanySidebar.vue'
+import { getCompanyCodeFromRecord, sortByCompanyOrder } from '@/utils/companyOrder'
 
 const route = useRoute()
 
@@ -171,7 +172,8 @@ function exportToCSV() {
 async function fetchCompanyList() {
   loading.value = true
   try {
-    companyList.value = await getSalesCompanies(detailType.value, targetDate.value)
+    const companies = await getSalesCompanies(detailType.value, targetDate.value)
+    companyList.value = sortByCompanyOrder(companies, item => item.companyName, getCompanyCodeFromRecord)
   } finally { loading.value = false }
 
   if (companyList.value.length > 0) await handleSelectCompany(0)

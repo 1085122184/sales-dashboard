@@ -4,19 +4,14 @@ import dayjs from 'dayjs'
 import { getSalesDetails } from '@/api/dashboard-api'
 import type { SalesDetailRecord } from '@/types'
 import * as XLSX from 'xlsx'
+import { COMPANY_SELECT_OPTIONS, getCompanyCodeFromRecord, sortByCompanyOrder } from '@/utils/companyOrder'
 
 // 查询条件
 const companyName = ref('')
 const date = ref(dayjs().format('YYYY-MM-DD'))
 
 // 公司选项
-const companyOptions = [
-  { label: '全部公司', value: '' },
-  { label: '绿冷', value: '绿冷' },
-  { label: '高分子', value: '高分子' },
-  { label: '氟硅', value: '氟硅' },
-  { label: '有机硅', value: '有机硅' }
-]
+const companyOptions = COMPANY_SELECT_OPTIONS
 
 // 数据类型选择
 const activeType = ref('sales')
@@ -58,7 +53,7 @@ async function fetchData() {
 
     const result = await getSalesDetails(params)
     console.log('获取到的数据:', result)
-    tableData.value = result || []
+    tableData.value = sortByCompanyOrder(result, item => item.companyName, getCompanyCodeFromRecord)
     total.value = tableData.value.length
     currentPage.value = 1
     console.log('表格数据长度:', tableData.value.length)

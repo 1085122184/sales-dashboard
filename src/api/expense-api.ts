@@ -1,5 +1,6 @@
 import http from './http'
 import type { ApiResponse } from '@/types'
+import type { CompanyDetailList, CompanyExpense } from '@/types'
 
 /**
  * 三费监控 API
@@ -60,8 +61,8 @@ export async function getExpenseOverview(date?: string) {
 }
 
 /** 2. 获取各公司三费对比数据 */
-export async function getExpenseCompanyComparison(date?: string) {
-  const res = await http.get<any, ApiResponse<any[]>>('/expense/company-comparison', { params: { date } })
+export async function getExpenseCompanyComparison(date?: string): Promise<CompanyExpense[]> {
+  const res = await http.get<any, ApiResponse<CompanyExpense[]>>('/expense/company-comparison', { params: { date } })
   return res.data || []
 }
 
@@ -83,8 +84,8 @@ export async function getExpenseCompanyDetail(params?: {
   keyword?: string
   page?: number
   pageSize?: number
-}) {
-  const res = await http.get<any, ApiResponse<any>>('/expense/company-detail', { params })
+}): Promise<CompanyDetailList> {
+  const res = await http.get<any, ApiResponse<CompanyDetailList>>('/expense/company-detail', { params })
   return res.data || { list: [], total: 0, page: 1, pageSize: 10 }
 }
 

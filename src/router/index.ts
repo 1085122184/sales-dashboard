@@ -77,8 +77,20 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/expense-executive',
     name: 'ExpenseExecutive',
-    component: () => import('@/views/expense-monitor/ExpenseExecutiveView.vue'),
-    meta: { title: '集团三费高管驾驶舱', requiresAuth: true }
+    meta: { title: '集团三费高管驾驶舱' },
+    component: () => import('@/views/expense-monitor/ExpenseExecutiveView.vue')
+  },
+  {
+    path: '/production-dashboard',
+    name: 'ProductionDashboard',
+    meta: { title: '生产运营指标大盘' },
+    component: () => import('@/views/production/ProductionDashboardView.vue')
+  },
+  {
+    path: '/production-detail',
+    name: 'ProductionDetail',
+    meta: { title: '生产明细数据' },
+    component: () => import('@/views/production/ProductionDetailView.vue')
   },
   {
     path: '/system/role',
@@ -90,8 +102,16 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
+  // 未来您可以在这里继续添加二级页面，例如：
+  // {
+  //   path: '/details/price',
+  //   name: 'PriceDetails',
+  //   component: () => import('@/views/PriceDeviationView.vue'),
+  //   meta: { title: '价格偏差明细台账' }
+  // }
 ]
 
+// 2. 创建路由实例
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
@@ -107,7 +127,7 @@ router.beforeEach((to) => {
   const requiresAuth = to.meta.requiresAuth === true
 
   if (to.meta.title) {
-    document.title = `${to.meta.title} - 销售系统`
+    document.title = `${to.meta.title} - 经营分析系统`
   }
 
   if (isLoginRoute && store.isAuthenticated) {
