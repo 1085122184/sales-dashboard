@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useGlobalStore } from '@/store/useGlobalStore'
+import { DECISION_PERMISSIONS } from '@/config/permissions'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -83,13 +84,21 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/production-dashboard',
     name: 'ProductionDashboard',
-    meta: { title: '生产运营指标大盘' },
+    meta: {
+      title: '生产运营指标大盘',
+      requiresAuth: true,
+      requiresPermission: DECISION_PERMISSIONS.PRODUCTION_VIEW
+    },
     component: () => import('@/views/production/ProductionDashboardView.vue')
   },
   {
     path: '/production-detail',
     name: 'ProductionDetail',
-    meta: { title: '生产明细数据' },
+    meta: {
+      title: '生产明细数据',
+      requiresAuth: true,
+      requiresPermission: DECISION_PERMISSIONS.PRODUCTION_DETAIL_VIEW
+    },
     component: () => import('@/views/production/ProductionDetailView.vue')
   },
   {
@@ -125,6 +134,7 @@ router.beforeEach((to) => {
   const isLoginRoute = to.name === 'Login'
   const isForbiddenRoute = to.name === 'Forbidden'
   const requiresAuth = to.meta.requiresAuth === true
+  const requiredPermission = typeof to.meta.requiresPermission === 'string' ? to.meta.requiresPermission : ''
 
   if (to.meta.title) {
     document.title = `${to.meta.title} - 经营分析系统`
@@ -146,6 +156,12 @@ router.beforeEach((to) => {
     return {
       name: 'Login',
       query: { redirect: to.fullPath }
+    }
+  }
+
+  if (requiredPermission && !store.hasPermission(requiredPermission)) {
+    return {
+      name: 'Forbidden'
     }
   }
 

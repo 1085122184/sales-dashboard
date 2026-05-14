@@ -56,7 +56,7 @@ deploy_frontend_without_auth:
     DEPLOY_USER: "root"
     DEPLOY_DIR: "/home/workspace/data_analysis"
   rules:
-    - if: '$CI_COMMIT_BRANCH == "without_auth"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
   environment:
     name: noauth-prod
