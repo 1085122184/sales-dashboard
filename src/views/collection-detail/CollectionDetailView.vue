@@ -15,6 +15,7 @@ import DetailTopBar from '@/components/business/DetailTopBar.vue'
 import CollectionBanner from './components/CollectionBanner.vue'
 import CompanySidebar from '@/components/business/CompanySidebar.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { getCompanyCodeFromRecord, sortByCompanyOrder } from '@/utils/companyOrder'
 
 // 🌟 1. 引入我们刚才写好的正式 API
 import { getCollectionCompanies, getCollectionCompanyDetail } from '@/api/dashboard-api'
@@ -112,7 +113,7 @@ async function fetchCompanyList() {
   try {
     // 调用正式接口，传入当前日期
     const res = await getCollectionCompanies(yesterday)
-    companyList.value = res || []
+    companyList.value = sortByCompanyOrder(res, item => item.companyName, getCompanyCodeFromRecord)
     
     // 如果列表有数据，自动加载第一家公司的明细
     if (companyList.value.length > 0) {
