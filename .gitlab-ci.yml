@@ -31,7 +31,7 @@ stages:
         set -e
         DEPLOY_DIR='$DEPLOY_DIR'
         cd \"\$DEPLOY_DIR\"
-        docker compose up -d --build frontend
+        docker compose up -d --build --no-deps frontend
         docker image prune -f
       "
 
