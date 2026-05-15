@@ -58,24 +58,34 @@ const chartOption = computed(() => {
   if (trend.length === 0) return {}
 
   const dates = trend.map(d => d.date)
+  const trendByDate = new Map(trend.map(item => [item.date, item]))
   
   // 销量数据提取
   const domesticVols = trend.map(d => d.domesticVolume || 0)
   const intlVols = trend.map(d => d.intlVolume || 0)
-  const totalVols = trend.map(d => (d.domesticVolume || 0) + (d.intlVolume || 0))
+  const totalAmts = trend.map(d => d.amount || 0)
   
-  // 销售额数据提取 
+  // 销售额数据提取
   const domesticAmts = trend.map(d => d.domesticAmount || 0)
   const intlAmts = trend.map(d => d.intlAmount || 0)
-  const totalAmts = trend.map(d => d.amount || 0)
+  const domesticAvgPrices = trend.map(d => {
+    const volume = d.domesticVolume || 0
+    const amount = d.domesticAmount || 0
+    return volume > 0 && amount > 0 ? amount / volume * 10000 : null
+  })
+  const intlAvgPrices = trend.map(d => {
+    const volume = d.intlVolume || 0
+    const amount = d.intlAmount || 0
+    return volume > 0 && amount > 0 ? amount / volume * 10000 : null
+  })
 
   // 判断当前模式
   const isVol = props.mode === 'volume'
 
   // 1. 动态配置 Y 轴名称和图例
   const leftAxisName = isVol ? '销量 (吨)' : '销售额 (万元)'
-  const rightAxisName = isVol ? '销售额 (万元)' : '销量 (吨)'
-  const legendData = isVol ? ['国内销量', '国外销量', '销售额'] : ['国内销售额', '国外销售额', '总销量']
+  const rightAxisName = isVol ? '销售额 (万元)' : '均价 (元/吨)'
+  const legendData = isVol ? ['国内销量', '国外销量', '销售额'] : ['国内销售额', '国外销售额', '国内均价', '国外均价']
 
   // 2. 动态配置 Series（柱状图和折线图数据翻转）
   const series = isVol 
@@ -87,7 +97,8 @@ const chartOption = computed(() => {
     : [
         { name: '国内销售额', type: 'bar', stack: 'amount', barWidth: '40%', itemStyle: { color: '#f59e0b' }, data: domesticAmts },
         { name: '国外销售额', type: 'bar', stack: 'amount', itemStyle: { color: '#fcd34d', borderRadius: [4, 4, 0, 0] }, data: intlAmts },
-        { name: '总销量', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#3182ce' }, lineStyle: { width: 3, shadowColor: 'rgba(49,130,206,0.3)', shadowBlur: 8 }, data: totalVols }
+        { name: '国内均价', type: 'line', yAxisIndex: 1, smooth: true, connectNulls: false, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#3182ce' }, lineStyle: { width: 3, shadowColor: 'rgba(49,130,206,0.3)', shadowBlur: 8 }, data: domesticAvgPrices },
+        { name: '国外均价', type: 'line', yAxisIndex: 1, smooth: true, connectNulls: false, symbol: 'circle', symbolSize: 6, itemStyle: { color: '#8b5cf6' }, lineStyle: { width: 3, shadowColor: 'rgba(139,92,246,0.3)', shadowBlur: 8 }, data: intlAvgPrices }
       ]
 
   return {
@@ -112,8 +123,9 @@ const chartOption = computed(() => {
             const unit = isVol ? '吨' : '万元'
             barHtml += `<div style="color:#64748b;font-size:12px;margin-bottom:3px">${p.marker} ${p.seriesName}：<b style="color:#1e293b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
           } else {
-            const unit = isVol ? '万元' : '吨'
-            lineHtml += `<div style="color:#64748b;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">${p.marker} ${p.seriesName}：<b style="color:#f59e0b">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
+            const unit = isVol ? '万元' : '元/吨'
+            const color = p.seriesName === '国内均价' ? '#3182ce' : '#8b5cf6'
+            lineHtml += `<div style="color:#64748b;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">${p.marker} ${p.seriesName}：<b style="color:${color}">${Math.round(p.value).toLocaleString()} ${unit}</b></div>`
           }
         })
         
@@ -121,9 +133,21 @@ const chartOption = computed(() => {
         const sumUnit = isVol ? '吨' : '万元'
         const sumLabel = isVol ? '总销量' : '总销售额'
         const sumHtml = `<div style="color:#475569;font-size:12px;margin-bottom:3px;font-weight:600"><span style="display:inline-block;width:10px;margin-right:4px"></span>${sumLabel}：<b style="color:#1e293b">${Math.round(sumBar).toLocaleString()} ${sumUnit}</b></div>`
+        const currentTrend = trendByDate.get(params[0]?.axisValue)
+        let emptyHtml = ''
+        if (!isVol && currentTrend) {
+          const domesticHasSales = (currentTrend.domesticVolume || 0) > 0 && (currentTrend.domesticAmount || 0) > 0
+          const intlHasSales = (currentTrend.intlVolume || 0) > 0 && (currentTrend.intlAmount || 0) > 0
+          if (!domesticHasSales) {
+            emptyHtml += `<div style="color:#94a3b8;font-size:12px;margin-top:6px">国内当日无成交，均价不展示</div>`
+          }
+          if (!intlHasSales) {
+            emptyHtml += `<div style="color:#94a3b8;font-size:12px;margin-top:6px">国外当日无成交，均价不展示</div>`
+          }
+        }
 
         // 拼接顺序：日期 -> 柱状图各部分 -> 柱状图总和 -> 折线图数值
-        return html + barHtml + sumHtml + lineHtml
+        return html + barHtml + sumHtml + lineHtml + emptyHtml
       }
     },
     legend: { data: legendData, top: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: '#64748b', fontSize: 12 } },
@@ -179,7 +203,7 @@ const chartOption = computed(() => {
               <div class="val">¥{{ Math.round(detailData.kpi.avgPrice).toLocaleString() }}</div>
               <div class="kpi-sub">
                 <span>国内 <b class="c-domestic">¥{{ Math.round(detailData.kpi.domesticAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
-                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.avgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.intlAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
               </div>
             </div>
             <!-- <div class="kpi-card highlight">

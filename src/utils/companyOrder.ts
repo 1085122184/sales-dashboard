@@ -10,15 +10,15 @@ export const COMPANY_ORDER: CompanyOrderItem[] = [
   { name: '高分子公司', queryName: '高分子', code: '1200', aliases: ['高分子公司', '高分子', '1200'] },
   { name: '氟硅公司', queryName: '氟硅', code: '1300', aliases: ['氟硅公司', '氟硅', '1300'] },
   { name: '有机硅公司', queryName: '有机硅', code: '1400', aliases: ['有机硅公司', '有机硅', '1400'] },
-  { name: '内蒙金鹏', queryName: '内蒙金鹏', aliases: ['内蒙金鹏', '内蒙古金鹏', '金鹏'] },
-  { name: '内蒙明岳', queryName: '内蒙明岳', aliases: ['内蒙明岳', '内蒙古明岳', '明岳'] },
+  { name: '内蒙金鹏', queryName: '内蒙金峰',code: '2200', aliases: ['内蒙金峰', '内蒙古金峰', '金峰','2200'] },
+  { name: '内蒙明岳', queryName: '内蒙明岳',code: '2500', aliases: ['内蒙明岳', '内蒙古明岳', '明岳','2500'] },
   { name: '联邦置业', queryName: '联邦置业', aliases: ['联邦置业'] },
   { name: '东岳置业', queryName: '东岳置业', aliases: ['东岳置业'] },
-  { name: '科技集团', queryName: '科技集团', aliases: ['科技集团', '东岳集团', '东岳科技集团'] },
-  { name: '东营盐业', queryName: '东营盐业', aliases: ['东营盐业', '盐业'] },
+  { name: '科技集团', queryName: '科技集团',code: '2000', aliases: ['科技集团', '东岳集团', '东岳科技集团','2000'] },
+  { name: '东营盐业', queryName: '东营盐业',code: '2100', aliases: ['东营盐业', '盐业','2100'] },
   { name: '鑫河硅基', queryName: '鑫河硅基', aliases: ['鑫河硅基', '鑫河'] },
-  { name: '西南阳光', queryName: '西南阳光', aliases: ['西南阳光'] },
-  { name: '湖北君雅', queryName: '湖北君雅', aliases: ['湖北君雅', '君雅'] },
+  { name: '西南阳光', queryName: '西南阳光',code: '2900', aliases: ['西南阳光','2900'] },
+  { name: '湖北君雅', queryName: '湖北君健',code: '2800', aliases: ['湖北君健', '君健','2800'] },
   { name: '国贸公司', queryName: '国贸公司', aliases: ['国贸公司', '国贸'] }
 ]
 
