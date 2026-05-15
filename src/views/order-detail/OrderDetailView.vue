@@ -7,6 +7,7 @@ import { ChartSkeleton } from '@/components'
 
 import DetailTopBar from '@/components/business/DetailTopBar.vue'
 import CompanySidebar from '@/components/business/CompanySidebar.vue'
+import { getCompanyCodeFromRecord, sortByCompanyOrder } from '@/utils/companyOrder'
 
 const route = useRoute()
 
@@ -109,10 +110,47 @@ const pagedData = computed(() => {
 // 总页数
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
 
+type PageItem = number | 'start-ellipsis' | 'end-ellipsis'
+
+const visiblePageItems = computed<PageItem[]>(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1)
+  }
+
+  const items: PageItem[] = [1]
+  const left = Math.max(2, current - 1)
+  const right = Math.min(total - 1, current + 1)
+
+  if (left > 2) {
+    items.push('start-ellipsis')
+  } else {
+    for (let page = 2; page < left; page++) items.push(page)
+  }
+
+  for (let page = left; page <= right; page++) items.push(page)
+
+  if (right < total - 1) {
+    items.push('end-ellipsis')
+  } else {
+    for (let page = right + 1; page < total; page++) items.push(page)
+  }
+
+  items.push(total)
+  return items
+})
+
 // 监听数据变化，重置分页和展开状态
 watch([processedData], () => {
   currentPage.value = 1
   expandedRows.value.clear() // 数据变化时收起所有行
+})
+
+watch(pageSize, () => {
+  currentPage.value = 1
+  expandedRows.value.clear()
 })
 
 // 🌟 排序切换
@@ -171,7 +209,8 @@ function exportToCSV() {
 async function fetchCompanyList() {
   loading.value = true
   try {
-    companyList.value = await getSalesCompanies(detailType.value, targetDate.value)
+    const companies = await getSalesCompanies(detailType.value, targetDate.value)
+    companyList.value = sortByCompanyOrder(companies, item => item.companyName, getCompanyCodeFromRecord)
   } finally { loading.value = false }
 
   if (companyList.value.length > 0) await handleSelectCompany(0)
@@ -385,15 +424,17 @@ onMounted(() => fetchCompanyList())
               <div class="pagination-controls">
                 <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">上一页</button>
                 <span class="page-numbers">
-                  <button 
-                    v-for="page in totalPages" 
-                    :key="page" 
-                    class="page-number" 
-                    :class="{ active: page === currentPage }"
-                    @click="currentPage = page"
-                  >
-                    {{ page }}
-                  </button>
+                  <template v-for="page in visiblePageItems" :key="page">
+                    <span v-if="typeof page === 'string'" class="page-ellipsis">...</span>
+                    <button
+                      v-else
+                      class="page-number"
+                      :class="{ active: page === currentPage }"
+                      @click="currentPage = page"
+                    >
+                      {{ page }}
+                    </button>
+                  </template>
                 </span>
                 <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">下一页</button>
               </div>
@@ -663,17 +704,28 @@ onMounted(() => fetchCompanyList())
 .btn-reset:hover { background: #2563eb; }
 
 /* 分页器 */
-.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; gap: 16px; }
+.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; gap: 16px; flex-wrap: wrap; }
 .pagination-info { font-size: 13px; color: #64748b; white-space: nowrap; }
-.pagination-controls { display: flex; align-items: center; gap: 8px; }
+.pagination-controls { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; flex: 1; }
 .page-btn { padding: 6px 14px; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; color: #374151; cursor: pointer; transition: all 0.15s; }
 .page-btn:hover:not(:disabled) { background: #f9fafb; border-color: #9ca3af; }
 .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.page-numbers { display: flex; gap: 4px; }
+.page-numbers { display: flex; gap: 4px; align-items: center; min-width: 0; }
 .page-number { min-width: 32px; height: 32px; padding: 0 8px; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; color: #374151; cursor: pointer; transition: all 0.15s; }
 .page-number:hover { background: #f9fafb; border-color: #9ca3af; }
 .page-number.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 600; }
+.page-ellipsis { min-width: 24px; text-align: center; color: #94a3b8; font-size: 13px; user-select: none; }
 .page-size-select { padding: 6px 28px 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 6px center; background-repeat: no-repeat; background-size: 14px; }
+
+@media (max-width: 768px) {
+  .canvas { padding: 16px; }
+  .pagination { align-items: stretch; }
+  .pagination-info { width: 100%; }
+  .pagination-controls { order: 3; flex: 1 1 100%; justify-content: flex-start; overflow-x: auto; padding-bottom: 2px; }
+  .page-size-select { order: 2; width: fit-content; }
+  .page-btn { flex-shrink: 0; }
+  .page-number, .page-ellipsis { flex-shrink: 0; }
+}
 
 /* 加载状态 */
 .loading-screen { position: fixed; inset: 0; background: #f8fafc; z-index: 999; flex-direction: column; align-items: center; justify-content: center; display: flex; gap: 16px; }

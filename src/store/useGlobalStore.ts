@@ -28,6 +28,11 @@ function safeParseObject<T>(value: string | null): T | null {
   }
 }
 
+function wildcardToRegExp(pattern: string) {
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`)
+}
+
 export const useGlobalStore = defineStore('global', () => {
   const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
   const thisMonth = dayjs().format('YYYY-MM')
@@ -46,6 +51,24 @@ export const useGlobalStore = defineStore('global', () => {
   const displayDateStr = computed(() => queryDate.value)
   const isAuthenticated = computed(() => Boolean(accessToken.value))
   const displayName = computed(() => userInfo.value?.nickname || userInfo.value?.username || '')
+
+  function hasPermission(permission: string) {
+    if (!permission) return false
+    return permissions.value.some((item) => {
+      if (item === '*:*:*' || item === permission) return true
+      return item.includes('*') && wildcardToRegExp(item).test(permission)
+    })
+  }
+
+  function hasAnyPermission(permissionList: readonly string[]) {
+    if (!permissionList.length) return true
+    return permissionList.some(permission => hasPermission(permission))
+  }
+
+  function hasAllPermissions(permissionList: readonly string[]) {
+    if (!permissionList.length) return true
+    return permissionList.every(permission => hasPermission(permission))
+  }
 
   function setPermissions(perms: string[]) {
     permissions.value = perms
@@ -102,6 +125,9 @@ export const useGlobalStore = defineStore('global', () => {
     permissions,
     roles,
     isAuthenticated,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
     setPermissions,
     setRoles,
     setAuth,

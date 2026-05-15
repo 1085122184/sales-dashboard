@@ -5,6 +5,7 @@
         <h1 class="hero-title">系统权限管理</h1>
       </div>
       <div class="hero-actions">
+        <el-button type="warning" plain @click="openPermissionAudit">权限体检</el-button>
         <el-button v-if="activeTab === 'users'" type="primary" @click="handleAddUser()">新增账号</el-button>
         <el-button v-else type="primary" @click="handleAddRole">新增角色</el-button>
       </div>
@@ -339,6 +340,13 @@
         <el-button text @click="clearTreeSelection">清空</el-button>
       </div>
 
+      <el-input
+        v-model.trim="permissionFilterText"
+        class="permission-filter"
+        placeholder="搜索菜单、权限标识或路径"
+        clearable
+      />
+
       <div v-loading="permissionDialog.loading" class="permission-tree-wrap">
         <el-tree
           ref="menuTreeRef"
@@ -347,6 +355,7 @@
           node-key="id"
           default-expand-all
           :props="{ label: 'menuName', children: 'children' }"
+          :filter-node-method="filterMenuNode"
           empty-text="暂无菜单数据"
         />
       </div>
@@ -356,11 +365,95 @@
         <el-button type="primary" :loading="permissionDialog.submitLoading" @click="submitPermission">保存权限</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="permissionAuditDialog.visible" title="权限体检" width="920px" destroy-on-close>
+      <div v-loading="permissionAuditDialog.loading" class="permission-audit">
+        <template v-if="permissionAuditResult">
+          <div class="audit-summary-grid">
+            <div class="audit-summary-item">
+              <span>受控路由</span>
+              <strong>{{ permissionAuditResult.summary.protectedRouteCount }}</strong>
+            </div>
+            <div class="audit-summary-item">
+              <span>数据库路径</span>
+              <strong>{{ permissionAuditResult.summary.menuPathCount }}</strong>
+            </div>
+            <div class="audit-summary-item">
+              <span>数据库权限</span>
+              <strong>{{ permissionAuditResult.summary.menuPermissionCount }}</strong>
+            </div>
+            <div class="audit-summary-item danger">
+              <span>错误</span>
+              <strong>{{ permissionAuditResult.summary.errorCount }}</strong>
+            </div>
+            <div class="audit-summary-item warning">
+              <span>警告</span>
+              <strong>{{ permissionAuditResult.summary.warningCount }}</strong>
+            </div>
+            <div class="audit-summary-item fixable">
+              <span>可补入</span>
+              <strong>{{ permissionAuditResult.summary.fixableCount }}</strong>
+            </div>
+          </div>
+
+          <el-alert
+            v-if="permissionAuditResult.issues.length === 0"
+            type="success"
+            title="当前前端受控路由与数据库菜单权限一致"
+            show-icon
+            :closable="false"
+          />
+
+          <el-table
+            v-else
+            :data="permissionAuditResult.issues"
+            border
+            stripe
+            max-height="430"
+            class="audit-table"
+          >
+            <el-table-column label="级别" width="92" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.severity === 'error' ? 'danger' : 'warning'" size="small">
+                  {{ row.severity === 'error' ? '错误' : '警告' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="类型" width="138">
+              <template #default="{ row }">
+                {{ getAuditIssueTypeLabel(row.type) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="routePath" label="路由/路径" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="permission" label="权限标识" min-width="210" show-overflow-tooltip />
+            <el-table-column label="可修复" width="92" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.fixable" type="success" size="small">可补入</el-tag>
+                <span v-else class="empty-text">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="message" label="说明" min-width="300" show-overflow-tooltip />
+          </el-table>
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="permissionAuditDialog.visible = false">关闭</el-button>
+        <el-button
+          v-if="permissionAuditResult?.summary.fixableCount"
+          type="success"
+          :loading="permissionAuditDialog.fixing"
+          @click="fixPermissionAuditIssues"
+        >
+          补入数据库
+        </el-button>
+        <el-button type="primary" :loading="permissionAuditDialog.loading" @click="openPermissionAudit">重新检查</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
@@ -368,6 +461,8 @@ import {
   addUser,
   deleteRole,
   deleteUser,
+  auditRoutePermissions,
+  fixMissingRoutePermissions,
   getMenuTree,
   getRoleMenuIds,
   getRolePage,
@@ -376,8 +471,12 @@ import {
   updateRole,
   updateUser
 } from '@/api/system-api'
+import { appRoutes } from '@/router/routes'
+import { appendRoutePermissionConfigIssues, collectRoutePermissionPayload } from '@/utils/permissionAudit'
 import type {
   MenuTreeNode,
+  PermissionAuditResponse,
+  PermissionAuditIssue,
   RoleItem,
   RolePayload,
   RoleQuery,
@@ -398,6 +497,8 @@ const roleList = ref<RoleItem[]>([])
 const userList = ref<UserItem[]>([])
 const roleOptions = ref<RoleItem[]>([])
 const menuOptions = ref<MenuTreeNode[]>([])
+const permissionFilterText = ref('')
+const permissionAuditResult = ref<PermissionAuditResponse | null>(null)
 
 const roleFormRef = ref<FormInstance>()
 const userFormRef = ref<FormInstance>()
@@ -462,6 +563,24 @@ const permissionDialog = reactive({
   currentRoleId: 0,
   currentRoleName: '',
   checkedKeys: [] as number[]
+})
+
+const permissionAuditDialog = reactive({
+  visible: false,
+  loading: false,
+  fixing: false
+})
+
+const auditIssueTypeLabels: Record<PermissionAuditIssue['type'], string> = {
+  'missing-permission': '权限缺失',
+  'missing-route-path': '路径未登记',
+  'route-without-permission': '路由未配置权限',
+  'orphan-menu-path': '历史菜单路径',
+  'duplicate-menu-path': '路径重复'
+}
+
+watch(permissionFilterText, (value) => {
+  menuTreeRef.value?.filter?.(value)
 })
 
 const roleRules: FormRules<RolePayload> = {
@@ -569,8 +688,8 @@ async function fetchRoleOptions() {
   }
 }
 
-async function fetchMenuTree() {
-  if (menuOptions.value.length > 0) return
+async function fetchMenuTree(force = false) {
+  if (!force && menuOptions.value.length > 0) return
   try {
     const res = await getMenuTree()
     menuOptions.value = res.data || []
@@ -857,6 +976,7 @@ async function handlePermission(row: RoleItem) {
   permissionDialog.visible = true
   permissionDialog.loading = true
   permissionDialog.checkedKeys = []
+  permissionFilterText.value = ''
 
   try {
     await fetchMenuTree()
@@ -880,6 +1000,71 @@ async function handlePermission(row: RoleItem) {
 
 function clearTreeSelection() {
   menuTreeRef.value?.setCheckedKeys([], false)
+}
+
+function filterMenuNode(value: string, data: MenuTreeNode) {
+  if (!value) return true
+  const keyword = value.toLowerCase()
+  return [data.menuName, data.perms, data.path, data.remark]
+    .filter(Boolean)
+    .some(item => String(item).toLowerCase().includes(keyword))
+}
+
+async function openPermissionAudit() {
+  permissionAuditDialog.visible = true
+  permissionAuditDialog.loading = true
+  permissionAuditResult.value = null
+  try {
+    const payload = buildPermissionAuditPayload()
+    const res = await auditRoutePermissions(payload)
+    permissionAuditResult.value = appendRoutePermissionConfigIssues(res.data, appRoutes)
+  } catch (error: any) {
+    ElMessage.error(error?.message || '权限体检失败')
+  } finally {
+    permissionAuditDialog.loading = false
+  }
+}
+
+async function fixPermissionAuditIssues() {
+  if (!permissionAuditResult.value?.summary.fixableCount) return
+
+  try {
+    await ElMessageBox.confirm(
+      `将向数据库补入 ${permissionAuditResult.value.summary.fixableCount} 个缺失权限，并默认授权给 system:admin。确认继续吗？`,
+      '补入数据库确认',
+      {
+        type: 'warning',
+        confirmButtonText: '补入数据库',
+        cancelButtonText: '取消'
+      }
+    )
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    throw error
+  }
+
+  permissionAuditDialog.fixing = true
+  try {
+    const res = await fixMissingRoutePermissions(buildPermissionAuditPayload())
+    permissionAuditResult.value = appendRoutePermissionConfigIssues(res.data.audit, appRoutes)
+    menuOptions.value = []
+    await fetchMenuTree(true)
+    ElMessage.success(`已补入 ${res.data.insertedCount} 个权限`)
+  } catch (error: any) {
+    ElMessage.error(error?.message || '补入数据库失败')
+  } finally {
+    permissionAuditDialog.fixing = false
+  }
+}
+
+function buildPermissionAuditPayload() {
+  return {
+    routes: collectRoutePermissionPayload(appRoutes)
+  }
+}
+
+function getAuditIssueTypeLabel(type: PermissionAuditIssue['type']) {
+  return auditIssueTypeLabels[type] || type
 }
 
 async function submitPermission() {
@@ -1009,6 +1194,10 @@ async function submitPermission() {
   font-weight: 700;
 }
 
+.permission-filter {
+  margin: 0 0 12px;
+}
+
 .permission-tree-wrap {
   min-height: 260px;
   max-height: 420px;
@@ -1017,6 +1206,52 @@ async function submitPermission() {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #f8fafc;
+}
+
+.permission-audit {
+  min-height: 260px;
+}
+
+.audit-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.audit-summary-item {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.audit-summary-item span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.audit-summary-item strong {
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.audit-summary-item.danger strong {
+  color: #dc2626;
+}
+
+.audit-summary-item.warning strong {
+  color: #d97706;
+}
+
+.audit-summary-item.fixable strong {
+  color: #16a34a;
+}
+
+.audit-table {
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -1052,6 +1287,10 @@ async function submitPermission() {
   .pagination-wrap {
     align-items: flex-start;
     justify-content: space-between;
+  }
+
+  .audit-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

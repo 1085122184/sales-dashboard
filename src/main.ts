@@ -5,6 +5,7 @@ import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router'
 import '@/assets/styles/global.css'
+import { hasPermi } from '@/directives/permission'
 
 // 🌟 统一注册 ECharts 模块，避免各组件重复注册
 import * as echarts from 'echarts/core'
@@ -60,4 +61,5 @@ app.config.errorHandler = (err, instance, info) => {
 app.use(createPinia())
 app.use(ElementPlus)
 app.use(router)
+app.directive('hasPermi', hasPermi)
 app.mount('#app')

@@ -22,7 +22,7 @@
       <section class="form-panel">
         <div class="form-header">
           <h2>登录系统</h2>
-          <p>{{ dingTalkAvailable ? '检测到移动端钉钉，正在尝试容器内免密登录。' : '请输入账号和密码完成登录。' }}</p>
+          <p>{{ formHeaderText }}</p>
         </div>
 
         <el-button
@@ -38,7 +38,14 @@
 
         <el-divider v-if="dingTalkAvailable">或</el-divider>
 
-        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="login-form">
+        <el-form
+          v-if="!ticketConsuming"
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-position="top"
+          class="login-form"
+        >
           <el-form-item label="用户名" prop="username">
             <el-input
               v-model.trim="form.username"
@@ -74,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -94,6 +101,7 @@ const submitting = ref(false)
 const dingTalkSubmitting = ref(false)
 const loginMessage = ref('')
 const dingTalkAvailable = ref(isMobileDingTalkContainer())
+const ticketConsuming = ref(false)
 
 const form = reactive<LoginRequest>({
   username: '',
@@ -110,6 +118,15 @@ const rules: FormRules<LoginRequest> = {
     { min: 6, max: 50, message: '密码长度为 6-50 个字符', trigger: 'blur' }
   ]
 }
+
+const formHeaderText = computed(() => {
+  if (ticketConsuming.value) {
+    return '正在校验钉钉中转登录票据，请稍候。'
+  }
+  return dingTalkAvailable.value
+    ? '检测到移动端钉钉，正在尝试容器内免密登录。'
+    : '请输入账号和密码完成登录。'
+})
 
 onMounted(() => {
   const loginTicket = typeof route.query.loginTicket === 'string' ? route.query.loginTicket : ''
@@ -154,14 +171,19 @@ async function submitDingTalkLogin() {
 
 async function consumeExternalLoginTicket(ticket: string) {
   submitting.value = true
+  ticketConsuming.value = true
   loginMessage.value = '正在使用钉钉中转票据进入系统...'
   try {
     const res = await consumeLoginTicket({ ticket })
     handleLoginSuccess(res.data)
   } catch (error: any) {
-    loginMessage.value = error?.message || '登录票据已过期，请回到钉钉重新打开。'
+    store.clearAuth()
+    clearLoginTicketFromUrl()
+    loginMessage.value = '钉钉中转登录票据已失效，请回到钉钉重新打开应用。'
+    ElMessage.error(error?.message || '钉钉中转登录失败')
   } finally {
     submitting.value = false
+    ticketConsuming.value = false
   }
 }
 
@@ -170,6 +192,12 @@ function handleLoginSuccess(payload: LoginResponse) {
   ElMessage.success('登录成功')
   const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
   router.replace(redirect)
+}
+
+function clearLoginTicketFromUrl() {
+  const query = { ...route.query }
+  delete query.loginTicket
+  router.replace({ name: 'Login', query })
 }
 
 function isMobileDingTalkContainer() {
