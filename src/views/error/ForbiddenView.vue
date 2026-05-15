@@ -3,10 +3,30 @@
     <div class="forbidden-card">
       <div class="status-code">403</div>
       <h1 class="status-title">没有权限访问当前页面</h1>
-      <p class="status-copy">
-        当前账号没有访问这个资源的权限。
-        <span v-if="fromPath">来源页面：{{ fromPath }}</span>
-      </p>
+      <p class="status-copy">当前账号缺少访问该资源所需的权限。</p>
+
+      <div class="diagnosis-panel">
+        <div class="diagnosis-row">
+          <span>当前账号</span>
+          <strong>{{ store.displayName || store.userInfo?.username || '-' }}</strong>
+        </div>
+        <div class="diagnosis-row">
+          <span>当前角色</span>
+          <strong>{{ roleText }}</strong>
+        </div>
+        <div v-if="fromPath" class="diagnosis-row">
+          <span>来源页面</span>
+          <strong>{{ fromPath }}</strong>
+        </div>
+        <div v-if="requiredPermissions.length" class="permission-block">
+          <span>缺失权限</span>
+          <div class="permission-list">
+            <code v-for="permission in requiredPermissions" :key="permission">
+              {{ permissionLabel(permission) }}
+            </code>
+          </div>
+        </div>
+      </div>
 
       <div class="action-row">
         <button type="button" class="action-btn primary" @click="goHome">返回首页</button>
@@ -19,14 +39,32 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { PERMISSION_LABELS } from '@/config/permissions'
+import { useGlobalStore } from '@/store/useGlobalStore'
 
 const route = useRoute()
 const router = useRouter()
+const store = useGlobalStore()
 
 const fromPath = computed(() => {
   const from = route.query.from
   return typeof from === 'string' ? from : ''
 })
+
+const requiredPermissions = computed(() => {
+  const required = route.query.required
+  if (typeof required !== 'string') return []
+  return required.split(',').map(item => item.trim()).filter(Boolean)
+})
+
+const roleText = computed(() => {
+  return store.roles.length > 0 ? store.roles.join('、') : '-'
+})
+
+function permissionLabel(permission: string) {
+  const label = PERMISSION_LABELS[permission]
+  return label ? `${label} (${permission})` : permission
+}
 
 function goHome() {
   router.replace('/')
@@ -55,10 +93,10 @@ function goBack() {
 }
 
 .forbidden-card {
-  width: min(560px, 100%);
+  width: min(620px, 100%);
   padding: 40px 36px;
-  border-radius: 24px;
-  background: rgba(255,255,255,0.94);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid #e2e8f0;
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
   text-align: center;
@@ -68,7 +106,6 @@ function goBack() {
   font-size: 72px;
   line-height: 1;
   font-weight: 800;
-  letter-spacing: -0.04em;
   color: #ef4444;
   margin-bottom: 10px;
 }
@@ -87,6 +124,53 @@ function goBack() {
   line-height: 1.8;
 }
 
+.diagnosis-panel {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.diagnosis-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.diagnosis-row strong {
+  color: #0f172a;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.permission-block {
+  padding-top: 10px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.permission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.permission-list code {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  word-break: break-all;
+}
+
 .action-row {
   margin-top: 28px;
   display: flex;
@@ -99,7 +183,7 @@ function goBack() {
   min-width: 132px;
   height: 42px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid #cbd5e1;
   background: #fff;
   color: #334155;
@@ -143,8 +227,9 @@ function goBack() {
     font-size: 24px;
   }
 
-  .status-copy {
-    font-size: 14px;
+  .diagnosis-row {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 </style>
