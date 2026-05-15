@@ -83,5 +83,61 @@ export interface MenuTreeNode {
   id: number
   menuName: string
   parentId?: number
+  menuType?: string
+  path?: string
+  component?: string
+  perms?: string
+  icon?: string
+  orderNum?: number
+  remark?: string
   children?: MenuTreeNode[]
+}
+
+export interface PermissionAuditPermission {
+  permission: string
+  label?: string
+}
+
+export interface PermissionAuditRoute {
+  path: string
+  name?: string
+  title?: string
+  menuPathRequired?: boolean
+  permissions: PermissionAuditPermission[]
+}
+
+export interface PermissionAuditRequest {
+  routes: PermissionAuditRoute[]
+}
+
+export interface PermissionAuditIssue {
+  type: 'missing-permission' | 'missing-route-path' | 'route-without-permission' | 'orphan-menu-path' | 'duplicate-menu-path'
+  severity: 'error' | 'warning'
+  routePath?: string
+  routeTitle?: string
+  menuName?: string
+  permission?: string
+  fixable?: boolean
+  message: string
+}
+
+export interface PermissionAuditSummary {
+  protectedRouteCount: number
+  menuPathCount: number
+  menuPermissionCount: number
+  errorCount: number
+  warningCount: number
+  fixableCount: number
+}
+
+export interface PermissionAuditResponse {
+  summary: PermissionAuditSummary
+  routes: PermissionAuditRoute[]
+  issues: PermissionAuditIssue[]
+}
+
+export interface PermissionAuditFixResponse {
+  insertedCount: number
+  skippedCount: number
+  audit: PermissionAuditResponse
 }

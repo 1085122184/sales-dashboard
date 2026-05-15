@@ -9,7 +9,10 @@ import type {
   UserCreatePayload,
   UserItem,
   UserQuery,
-  UserUpdatePayload
+  UserUpdatePayload,
+  PermissionAuditRequest,
+  PermissionAuditResponse,
+  PermissionAuditFixResponse
 } from '@/types'
 
 export const getRolePage = async (params: RoleQuery) => {
@@ -64,5 +67,15 @@ export const getRoleMenuIds = async (roleId: number) => {
 
 export const saveRoleMenus = async (roleId: number, menuIds: number[]) => {
   const res = await http.put<any, ApiResponse<boolean>>(`/v1/system/roles/${roleId}/menus`, menuIds)
+  return res
+}
+
+export const auditRoutePermissions = async (data: PermissionAuditRequest) => {
+  const res = await http.post<any, ApiResponse<PermissionAuditResponse>>('/v1/system/roles/permission-audit', data)
+  return res
+}
+
+export const fixMissingRoutePermissions = async (data: PermissionAuditRequest) => {
+  const res = await http.post<any, ApiResponse<PermissionAuditFixResponse>>('/v1/system/roles/permission-audit/fix', data)
   return res
 }

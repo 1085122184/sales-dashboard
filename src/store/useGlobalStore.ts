@@ -60,6 +60,16 @@ export const useGlobalStore = defineStore('global', () => {
     })
   }
 
+  function hasAnyPermission(permissionList: readonly string[]) {
+    if (!permissionList.length) return true
+    return permissionList.some(permission => hasPermission(permission))
+  }
+
+  function hasAllPermissions(permissionList: readonly string[]) {
+    if (!permissionList.length) return true
+    return permissionList.every(permission => hasPermission(permission))
+  }
+
   function setPermissions(perms: string[]) {
     permissions.value = perms
     localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(perms))
@@ -116,6 +126,8 @@ export const useGlobalStore = defineStore('global', () => {
     roles,
     isAuthenticated,
     hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
     setPermissions,
     setRoles,
     setAuth,

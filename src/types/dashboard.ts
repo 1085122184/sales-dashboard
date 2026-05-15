@@ -119,6 +119,7 @@ export interface SalesTrendProduct {
 
 export interface ProductDeepKPI {
   domesticAvgPrice: number
+  intlAvgPrice: number
   intlVolume: number
   domesticVolume: number
   intlAmount: number
