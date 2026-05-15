@@ -45,7 +45,9 @@ router.beforeEach((to) => {
     document.title = `${to.meta.title} - 经营分析系统`
   }
 
-  if (isLoginRoute && store.isAuthenticated) {
+  const hasLoginTicket = isLoginRoute && typeof to.query.loginTicket === 'string' && to.query.loginTicket.length > 0
+
+  if (isLoginRoute && store.isAuthenticated && !hasLoginTicket) {
     const redirect = typeof to.query.redirect === 'string' ? to.query.redirect : '/'
     return redirect
   }
