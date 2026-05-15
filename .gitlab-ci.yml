@@ -21,7 +21,12 @@ stages:
     - mkdir -p ~/.ssh
     - ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
   script:
+    - echo "CI commit ${CI_COMMIT_SHA}, branch ${CI_COMMIT_BRANCH}"
+    - node --version
+    - npm --version
     - npm config set registry https://registry.npmmirror.com
+    - npm install --package-lock-only --no-audit --no-fund
+    - grep -q '"node_modules/@typescript-eslint/parser"' package-lock.json
     - npm ci --no-audit --no-fund
     - npm run build
     - ssh -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_DIR/frontend/dist'"
@@ -35,7 +40,7 @@ stages:
         docker image prune -f
       "
 
-deploy_frontend_auth:
+deploy_frontend_auth_53:
   extends: .deploy_frontend_template
   variables:
     DEPLOY_HOST: "192.168.200.53"
@@ -46,9 +51,9 @@ deploy_frontend_auth:
     - if: '$CI_COMMIT_BRANCH == "auth_branch"'
       when: manual
   environment:
-    name: auth-prod
+    name: auth-prod-53
 
-deploy_frontend_without_auth:
+deploy_frontend_auth_40:
   extends: .deploy_frontend_template
   variables:
     DEPLOY_HOST: "192.168.200.40"
@@ -59,4 +64,4 @@ deploy_frontend_without_auth:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
   environment:
-    name: noauth-prod
+    name: auth-prod-40
