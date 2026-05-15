@@ -79,6 +79,59 @@ export interface UserItem {
   updateTime?: string
 }
 
+export interface DingTalkDepartmentNode {
+  deptId: number
+  parentId?: number
+  name: string
+  leaf?: boolean
+  children?: DingTalkDepartmentNode[]
+}
+
+export type DingTalkUserImportStatus = 'NEW' | 'EXISTS' | 'CONFLICT'
+
+export interface DingTalkUserCandidate {
+  dingUserId: string
+  dingUnionId?: string
+  name: string
+  mobile?: string
+  email?: string
+  avatar?: string
+  position?: string
+  deptIdList?: number[]
+  importStatus: DingTalkUserImportStatus
+  existingUserId?: number
+  existingUsername?: string
+  conflictReason?: string
+}
+
+export interface DingTalkUserPageResult {
+  list: DingTalkUserCandidate[]
+  hasMore?: boolean
+  nextCursor?: number | null
+}
+
+export interface DingTalkUserImportRequest {
+  dingUserIds: string[]
+  roleIds: number[]
+  status: number
+}
+
+export interface DingTalkUserImportResultRow {
+  dingUserId: string
+  name?: string
+  action: 'CREATED' | 'UPDATED' | 'CONFLICT' | 'FAILED'
+  userId?: number
+  message?: string
+}
+
+export interface DingTalkUserImportResponse {
+  createdCount: number
+  updatedCount: number
+  conflictCount: number
+  failedCount: number
+  rows: DingTalkUserImportResultRow[]
+}
+
 export interface MenuTreeNode {
   id: number
   menuName: string

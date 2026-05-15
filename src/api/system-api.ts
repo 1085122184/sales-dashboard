@@ -10,6 +10,10 @@ import type {
   UserItem,
   UserQuery,
   UserUpdatePayload,
+  DingTalkDepartmentNode,
+  DingTalkUserImportRequest,
+  DingTalkUserImportResponse,
+  DingTalkUserPageResult,
   PermissionAuditRequest,
   PermissionAuditResponse,
   PermissionAuditFixResponse
@@ -42,6 +46,26 @@ export const updateUser = async (data: UserUpdatePayload) => {
 
 export const deleteUser = async (id: number) => {
   const res = await http.delete<any, ApiResponse<boolean>>(`/v1/system/roles/users/${id}`)
+  return res
+}
+
+export const getDingTalkDepartments = async (params?: { deptId?: number }) => {
+  const res = await http.get<any, ApiResponse<DingTalkDepartmentNode[]>>('/v1/system/dingtalk/departments', { params })
+  return res
+}
+
+export const getDingTalkUsers = async (params: {
+  deptId?: number
+  includeChildren?: boolean
+  cursor?: number
+  size?: number
+}) => {
+  const res = await http.get<any, ApiResponse<DingTalkUserPageResult>>('/v1/system/dingtalk/users', { params })
+  return res
+}
+
+export const importDingTalkUsers = async (data: DingTalkUserImportRequest) => {
+  const res = await http.post<any, ApiResponse<DingTalkUserImportResponse>>('/v1/system/dingtalk/users/import', data)
   return res
 }
 

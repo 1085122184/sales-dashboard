@@ -6,7 +6,10 @@
       </div>
       <div class="hero-actions">
         <el-button type="warning" plain @click="openPermissionAudit">权限体检</el-button>
-        <el-button v-if="activeTab === 'users'" type="primary" @click="handleAddUser()">新增账号</el-button>
+        <template v-if="activeTab === 'users'">
+          <el-button @click="openDingTalkImportDialog">从钉钉导入</el-button>
+          <el-button type="primary" @click="handleAddUser()">新增账号</el-button>
+        </template>
         <el-button v-else type="primary" @click="handleAddRole">新增角色</el-button>
       </div>
     </section>
@@ -47,6 +50,7 @@
             <div class="toolbar-summary">共 {{ userTotal }} 个账号</div>
             <div class="toolbar-actions">
               <el-button :loading="userLoading" @click="fetchUserList">刷新</el-button>
+              <el-button @click="openDingTalkImportDialog">从钉钉导入</el-button>
               <el-button type="primary" @click="handleAddUser()">新增账号</el-button>
             </div>
           </div>
@@ -331,6 +335,142 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="dingTalkImportDialog.visible"
+      title="从钉钉导入账号"
+      width="1080px"
+      destroy-on-close
+      class="dingtalk-import-dialog"
+      @closed="resetDingTalkImportState"
+    >
+      <div class="dingtalk-import-layout">
+        <aside class="dingtalk-dept-panel">
+          <div class="import-panel-title">组织架构</div>
+          <el-tree
+            ref="dingTalkDeptTreeRef"
+            lazy
+            node-key="deptId"
+            :load="loadDingTalkDeptNode"
+            :props="dingTalkDeptTreeProps"
+            highlight-current
+            empty-text="暂无部门"
+            @node-click="handleDingTalkDeptClick"
+          />
+        </aside>
+
+        <main class="dingtalk-user-panel">
+          <div class="dingtalk-import-controls">
+            <div class="selected-dept-name">{{ dingTalkImportDialog.selectedDeptName || '请选择部门' }}</div>
+            <el-switch
+              v-model="dingTalkImportDialog.includeChildren"
+              active-text="包含子部门"
+              inactive-text="仅直属"
+              @change="reloadDingTalkUsers"
+            />
+          </div>
+
+          <el-table
+            ref="dingTalkUserTableRef"
+            :data="dingTalkUserList"
+            v-loading="dingTalkImportDialog.userLoading"
+            border
+            stripe
+            height="100%"
+            class="role-table dingtalk-user-table"
+            @selection-change="handleDingTalkSelectionChange"
+          >
+            <el-table-column type="selection" width="48" :selectable="isDingTalkUserSelectable" />
+            <el-table-column prop="name" label="姓名" min-width="120" show-overflow-tooltip />
+            <el-table-column prop="mobile" label="手机号" min-width="140" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.mobile || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="position" label="职位" min-width="130" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.position || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="email" label="邮箱" min-width="170" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.email || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="导入状态" width="136" align="center">
+              <template #default="{ row }">
+                <el-tooltip
+                  v-if="row.importStatus === 'CONFLICT'"
+                  :content="row.conflictReason || '账号冲突'"
+                  placement="top"
+                >
+                  <el-tag type="danger" size="small">冲突</el-tag>
+                </el-tooltip>
+                <el-tag v-else :type="row.importStatus === 'NEW' ? 'success' : 'warning'" size="small">
+                  {{ getDingTalkImportStatusLabel(row.importStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="existingUsername" label="系统账号" min-width="120" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.existingUsername || '-' }}
+              </template>
+            </el-table-column>
+
+            <template #empty>
+              <el-empty description="暂无钉钉人员" />
+            </template>
+          </el-table>
+
+          <div class="dingtalk-import-footer-form">
+            <el-select
+              v-model="dingTalkImportForm.roleIds"
+              multiple
+              filterable
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="请选择导入账号角色"
+              class="dingtalk-role-select"
+            >
+              <el-option
+                v-for="role in roleOptions"
+                :key="role.id"
+                :label="role.roleName"
+                :value="role.id"
+                :disabled="!role.id"
+              />
+            </el-select>
+            <el-radio-group v-model="dingTalkImportForm.status">
+              <el-radio-button :label="1">正常</el-radio-button>
+              <el-radio-button :label="0">停用</el-radio-button>
+            </el-radio-group>
+            <el-button
+              :disabled="!dingTalkImportDialog.hasMore"
+              :loading="dingTalkImportDialog.userLoading"
+              @click="loadMoreDingTalkUsers"
+            >
+              加载更多
+            </el-button>
+          </div>
+        </main>
+      </div>
+
+      <template #footer>
+        <div class="dingtalk-import-footer">
+          <span>已选择 {{ dingTalkSelectedUsers.length }} 人</span>
+          <div>
+            <el-button @click="dingTalkImportDialog.visible = false">取消</el-button>
+            <el-button
+              type="primary"
+              :loading="dingTalkImportDialog.submitLoading"
+              @click="submitDingTalkImport"
+            >
+              导入账号
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="permissionDialog.visible" title="分配权限" width="560px" destroy-on-close>
       <div class="permission-header">
         <div class="permission-role">
@@ -463,10 +603,13 @@ import {
   deleteUser,
   auditRoutePermissions,
   fixMissingRoutePermissions,
+  getDingTalkDepartments,
+  getDingTalkUsers,
   getMenuTree,
   getRoleMenuIds,
   getRolePage,
   getUserPage,
+  importDingTalkUsers,
   saveRoleMenus,
   updateRole,
   updateUser
@@ -477,6 +620,8 @@ import type {
   MenuTreeNode,
   PermissionAuditResponse,
   PermissionAuditIssue,
+  DingTalkDepartmentNode,
+  DingTalkUserCandidate,
   RoleItem,
   RolePayload,
   RoleQuery,
@@ -497,12 +642,16 @@ const roleList = ref<RoleItem[]>([])
 const userList = ref<UserItem[]>([])
 const roleOptions = ref<RoleItem[]>([])
 const menuOptions = ref<MenuTreeNode[]>([])
+const dingTalkUserList = ref<DingTalkUserCandidate[]>([])
+const dingTalkSelectedUsers = ref<DingTalkUserCandidate[]>([])
 const permissionFilterText = ref('')
 const permissionAuditResult = ref<PermissionAuditResponse | null>(null)
 
 const roleFormRef = ref<FormInstance>()
 const userFormRef = ref<FormInstance>()
 const menuTreeRef = ref<any>()
+const dingTalkDeptTreeRef = ref<any>()
+const dingTalkUserTableRef = ref<any>()
 
 const defaultRoleQueryForm = (): RoleQuery => ({
   pageNum: 1,
@@ -539,10 +688,16 @@ const defaultUserForm = (): UserFormModel => ({
   roleIds: []
 })
 
+const defaultDingTalkImportForm = () => ({
+  roleIds: [] as number[],
+  status: 1
+})
+
 const roleQueryForm = reactive<RoleQuery>(defaultRoleQueryForm())
 const userQueryForm = reactive<UserQuery>(defaultUserQueryForm())
 const roleForm = reactive<RolePayload>(defaultRoleForm())
 const userForm = reactive<UserFormModel>(defaultUserForm())
+const dingTalkImportForm = reactive(defaultDingTalkImportForm())
 
 const roleDialog = reactive({
   visible: false,
@@ -554,6 +709,18 @@ const userDialog = reactive({
   visible: false,
   mode: 'add' as 'add' | 'edit',
   submitLoading: false
+})
+
+const dingTalkImportDialog = reactive({
+  visible: false,
+  deptLoading: false,
+  userLoading: false,
+  submitLoading: false,
+  includeChildren: false,
+  selectedDeptId: 1,
+  selectedDeptName: '',
+  nextCursor: 0 as number | null,
+  hasMore: false
 })
 
 const permissionDialog = reactive({
@@ -577,6 +744,12 @@ const auditIssueTypeLabels: Record<PermissionAuditIssue['type'], string> = {
   'route-without-permission': '路由未配置权限',
   'orphan-menu-path': '历史菜单路径',
   'duplicate-menu-path': '路径重复'
+}
+
+const dingTalkDeptTreeProps = {
+  label: 'name',
+  children: 'children',
+  isLeaf: 'leaf'
 }
 
 watch(permissionFilterText, (value) => {
@@ -695,6 +868,172 @@ async function fetchMenuTree(force = false) {
     menuOptions.value = res.data || []
   } catch (error: any) {
     ElMessage.error(error?.message || '菜单树加载失败')
+  }
+}
+
+async function openDingTalkImportDialog() {
+  await ensureRoleOptions()
+  resetDingTalkImportState()
+  dingTalkImportDialog.visible = true
+}
+
+function resetDingTalkImportState() {
+  dingTalkUserList.value = []
+  dingTalkSelectedUsers.value = []
+  Object.assign(dingTalkImportForm, defaultDingTalkImportForm())
+  Object.assign(dingTalkImportDialog, {
+    deptLoading: false,
+    userLoading: false,
+    submitLoading: false,
+    includeChildren: false,
+    selectedDeptId: 1,
+    selectedDeptName: '',
+    nextCursor: 0,
+    hasMore: false
+  })
+}
+
+async function loadDingTalkDeptNode(node: any, resolve: (data: DingTalkDepartmentNode[]) => void) {
+  const deptId = node.level === 0 ? 1 : Number(node.data?.deptId || 1)
+  try {
+    const res = await getDingTalkDepartments({ deptId })
+    const departments = res.data || []
+    if (node.level === 0) {
+      resolve([{ deptId: 1, parentId: 0, name: '钉钉组织', leaf: departments.length === 0, children: departments }])
+      return
+    }
+    resolve(departments)
+  } catch (error: any) {
+    ElMessage.error(error?.message || '钉钉部门加载失败')
+    resolve([])
+  }
+}
+
+function handleDingTalkDeptClick(data: DingTalkDepartmentNode) {
+  dingTalkImportDialog.selectedDeptId = data.deptId
+  dingTalkImportDialog.selectedDeptName = data.name
+  reloadDingTalkUsers()
+}
+
+async function reloadDingTalkUsers() {
+  dingTalkImportDialog.nextCursor = 0
+  dingTalkImportDialog.hasMore = false
+  dingTalkUserList.value = []
+  dingTalkSelectedUsers.value = []
+  dingTalkUserTableRef.value?.clearSelection?.()
+  await fetchDingTalkUsers(false)
+}
+
+async function fetchDingTalkUsers(append: boolean) {
+  if (!dingTalkImportDialog.selectedDeptId) {
+    ElMessage.warning('请先选择钉钉部门')
+    return
+  }
+  dingTalkImportDialog.userLoading = true
+  try {
+    const res = await getDingTalkUsers({
+      deptId: dingTalkImportDialog.selectedDeptId,
+      includeChildren: dingTalkImportDialog.includeChildren,
+      cursor: dingTalkImportDialog.nextCursor ?? 0,
+      size: 50
+    })
+    const pageData = res.data || { list: [] }
+    dingTalkUserList.value = append
+      ? mergeDingTalkUsers(dingTalkUserList.value, pageData.list || [])
+      : (pageData.list || [])
+    dingTalkImportDialog.hasMore = Boolean(pageData.hasMore)
+    dingTalkImportDialog.nextCursor = pageData.nextCursor ?? null
+  } catch (error: any) {
+    ElMessage.error(error?.message || '钉钉人员加载失败')
+  } finally {
+    dingTalkImportDialog.userLoading = false
+  }
+}
+
+function mergeDingTalkUsers(
+  existing: DingTalkUserCandidate[],
+  incoming: DingTalkUserCandidate[]
+): DingTalkUserCandidate[] {
+  const map = new Map<string, DingTalkUserCandidate>()
+  for (const item of existing) {
+    map.set(item.dingUserId, item)
+  }
+  for (const item of incoming) {
+    map.set(item.dingUserId, item)
+  }
+  return Array.from(map.values())
+}
+
+function loadMoreDingTalkUsers() {
+  fetchDingTalkUsers(true)
+}
+
+function isDingTalkUserSelectable(row: DingTalkUserCandidate) {
+  return row.importStatus !== 'CONFLICT'
+}
+
+function handleDingTalkSelectionChange(selection: DingTalkUserCandidate[]) {
+  dingTalkSelectedUsers.value = selection
+}
+
+function getDingTalkImportStatusLabel(status: string) {
+  if (status === 'NEW') return '新增'
+  if (status === 'EXISTS') return '覆盖更新'
+  if (status === 'CONFLICT') return '冲突'
+  return status || '-'
+}
+
+async function submitDingTalkImport() {
+  if (dingTalkSelectedUsers.value.length === 0) {
+    ElMessage.warning('请先勾选要导入的钉钉人员')
+    return
+  }
+  if (dingTalkImportForm.roleIds.length === 0) {
+    ElMessage.warning('请至少选择一个系统角色')
+    return
+  }
+
+  try {
+    const updateCount = dingTalkSelectedUsers.value.filter(item => item.importStatus === 'EXISTS').length
+    if (updateCount > 0) {
+      await ElMessageBox.confirm(
+        `本次将覆盖更新 ${updateCount} 个已存在账号的资料、角色和状态。确认继续吗？`,
+        '覆盖更新确认',
+        {
+          type: 'warning',
+          confirmButtonText: '继续导入',
+          cancelButtonText: '取消'
+        }
+      )
+    }
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    throw error
+  }
+
+  dingTalkImportDialog.submitLoading = true
+  try {
+    const res = await importDingTalkUsers({
+      dingUserIds: dingTalkSelectedUsers.value.map(item => item.dingUserId),
+      roleIds: dingTalkImportForm.roleIds,
+      status: dingTalkImportForm.status
+    })
+    const result = res.data || {
+      createdCount: 0,
+      updatedCount: 0,
+      conflictCount: 0,
+      failedCount: 0,
+      rows: []
+    }
+    ElMessage.success(
+      `导入完成：新增 ${result.createdCount}，更新 ${result.updatedCount}，冲突 ${result.conflictCount}，失败 ${result.failedCount}`
+    )
+    dingTalkImportDialog.visible = false
+    await fetchUserList()
+  } catch (error: any) {
+    ElMessage.error(error?.message || '钉钉人员导入失败')
+  } finally {
+    dingTalkImportDialog.submitLoading = false
   }
 }
 
@@ -1208,6 +1547,104 @@ async function submitPermission() {
   background: #f8fafc;
 }
 
+.dingtalk-import-dialog :deep(.el-dialog) {
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dingtalk-import-dialog :deep(.el-dialog__body) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dingtalk-import-dialog :deep(.el-dialog__footer) {
+  flex: 0 0 auto;
+}
+
+.dingtalk-import-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  height: min(620px, calc(86vh - 142px));
+  min-height: 420px;
+  overflow: hidden;
+}
+
+.dingtalk-dept-panel,
+.dingtalk-user-panel {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dingtalk-dept-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  overflow: auto;
+}
+
+.import-panel-title {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dingtalk-dept-panel :deep(.el-tree) {
+  flex: 1;
+  min-height: 0;
+}
+
+.dingtalk-user-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.dingtalk-import-controls,
+.dingtalk-import-footer-form,
+.dingtalk-import-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dingtalk-import-controls {
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+}
+
+.selected-dept-name {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dingtalk-user-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 12px;
+}
+
+.dingtalk-import-footer-form {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+
+.dingtalk-role-select {
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
 .permission-audit {
   min-height: 260px;
 }
@@ -1291,6 +1728,22 @@ async function submitPermission() {
 
   .audit-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dingtalk-import-layout {
+    grid-template-columns: 1fr;
+    height: min(680px, calc(86vh - 142px));
+    min-height: 0;
+  }
+
+  .dingtalk-dept-panel {
+    max-height: 220px;
+  }
+
+  .dingtalk-import-controls,
+  .dingtalk-import-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>
