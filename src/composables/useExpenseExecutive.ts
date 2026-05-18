@@ -32,7 +32,7 @@ export function useExpenseExecutive() {
   const comparisonLoading = ref(true)
   const structureLoading = ref(true)
   const trendLoading = ref(true)
-  const detailLoading = ref(true)
+  const detailLoading = ref(false)
   
   const dailyDetailLoading = ref(false)
   const budgetExecutionLoading = ref(true) 
@@ -42,7 +42,7 @@ export function useExpenseExecutive() {
 
   const isAnyLoading = computed(() =>
     overviewLoading.value || comparisonLoading.value || structureLoading.value || 
-    trendLoading.value || detailLoading.value || budgetExecutionLoading.value || growthLoading.value
+    trendLoading.value || budgetExecutionLoading.value || growthLoading.value
   )
 
   const overview = ref<ExpenseOverview | null>(null)
@@ -168,7 +168,6 @@ export function useExpenseExecutive() {
     loadComparison()
     loadStructure()
     loadTrend()
-    loadCompanyDetail()
     loadBudgetExecution() 
     loadGrowthData() 
   }
@@ -193,16 +192,6 @@ export function useExpenseExecutive() {
       refreshAll()
     }
   }, { immediate: true })
-
-  watch(detailMonth, (newMonth) => {
-    if (newMonth && store.backendDateStr) {
-      const currentBackendMonth = store.backendDateStr.slice(0, 7)
-      if (newMonth === currentBackendMonth) {
-        currentPage.value = 1
-        loadCompanyDetail()
-      }
-    }
-  })
 
   watch(timeDimension, () => {
     loadBudgetExecution()

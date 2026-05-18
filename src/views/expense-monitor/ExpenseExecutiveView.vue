@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import EChart from '@/components/charts/BaseEChart.vue'
 import { useGlobalStore } from '@/store/useGlobalStore'
 import { useExpenseExecutive } from '@/composables/useExpenseExecutive'
@@ -9,8 +9,6 @@ const store = useGlobalStore()
 
 const {
   isAnyLoading,
-  detailLoading,
-  dailyDetailLoading,
   budgetExecutionLoading,
   growthLoading,        
   companyGrowthData,    
@@ -18,52 +16,14 @@ const {
   companyComparison,
   expenseStructure,
   expenseTrend,
-  companyDetail,
-  dailyDetailList,
   budgetExecutionList,    
-  detailMonth,      
-  searchKeyword,
   timeDimension,          
-  refreshAll,
-  handleSearch,
-  loadDailyDetail   
+  refreshAll
 } = useExpenseExecutive()
 
 const growthViewType = ref<'yoy' | 'mom'>('yoy')
 const leftChartType = ref<'bar' | 'radar'>('bar')
 const rightChartType = ref<'donut' | 'pie'>('donut')
-
-// 列表搜索输入框双向绑定
-const searchQuery = computed({
-  get: () => searchKeyword.value,
-  set: (val: string) => handleSearch(val)
-})
-
-// ==================== 弹窗逻辑 ====================
-const showDetailModal = ref(false)
-const selectedCompany = ref<any>(null)
-const detailDailyDate = ref(new Date().toISOString().slice(0, 10))
-
-watch(detailDailyDate, () => {
-  if (showDetailModal.value && selectedCompany.value) {
-    loadDailyDetail(selectedCompany.value.name, detailDailyDate.value)
-  }
-})
-
-function openDetailModal(company: any) {
-  selectedCompany.value = company
-  detailDailyDate.value = store.queryDate || new Date().toISOString().slice(0, 10)
-  showDetailModal.value = true
-  loadDailyDetail(company.name, detailDailyDate.value)
-}
-
-function closeDetailModal() {
-  showDetailModal.value = false
-  setTimeout(() => {
-    selectedCompany.value = null
-    dailyDetailList.value = []
-  }, 200)
-}
 
 // 🌟 核心修复区：手动同步并强制刷新
 const monthValue = computed({
@@ -72,11 +32,8 @@ const monthValue = computed({
     if (val) {
       // 1. 更新全局 Store
       store.queryDate = `${val}-01`
-      
-      // 2. 强制同步底层明细表格的月份
-      detailMonth.value = val
-      
-      // 3. 手动触发全局数据的重新获取，解决 Pinia 侦听丢失的问题
+
+      // 2. 手动触发全局数据的重新获取，解决 Pinia 侦听丢失的问题
       refreshAll()
     }
   }
@@ -523,127 +480,6 @@ void rightChartOption
       </div>
     </section>
 
-    <section class="section detail-section">
-      <div class="detail-card-full">
-        <div class="detail-header-row">
-          <div class="detail-title-wrap">
-            <h3 class="detail-card-title">各公司三费明细</h3>
-            <span class="detail-subtitle">点击查看当月产生明细流水</span>
-          </div>
-          
-          <div class="detail-actions">
-            <div class="month-filter">
-              <span class="filter-label">数据月份：</span>
-              <input type="month" v-model="detailMonth" class="month-input" />
-            </div>
-            
-            <div class="search-box">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <input v-model="searchQuery" type="text" placeholder="搜索公司..." class="search-input" />
-            </div>
-          </div>
-        </div>
-        
-        <div class="table-wrapper">
-          <table class="detail-table">
-            <thead>
-              <tr>
-                <th>公司名称</th>
-                <th>销售费用</th>
-                <th>管理费用</th>
-                <th>财务费用</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(company, index) in companyDetail?.list || []" :key="company.name">
-                <td>
-                  <div class="company-cell">
-                    <span class="company-rank">{{ index + 1 }}</span>
-                    <span class="company-name">{{ company.name }}</span>
-                  </div>
-                </td>
-                    <td class="number-cell">￥{{ Number(company.sales || 0).toFixed(2) }}万</td>
-                    <td class="number-cell">￥{{ Number(company.management || 0).toFixed(2) }}万</td>
-                    <td class="number-cell">￥{{ Number(company.finance || 0).toFixed(2) }}万</td>
-                <td>
-                  <button class="detail-btn" @click="openDetailModal(company)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                      <line x1="11" y1="8" x2="11" y2="14"></line>
-                      <line x1="8" y1="11" x2="14" y2="11"></line>
-                    </svg>
-                    详情
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="!detailLoading && (!companyDetail?.list || companyDetail.list.length === 0)">
-                <td colspan="5" style="text-align: center; padding: 40px; color: #94a3b8;">暂无明细数据</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
-      <div class="modal-container">
-        <header class="modal-header">
-          <div class="modal-title-wrap">
-            <div class="modal-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </div>
-            <h3 class="modal-title">费用明细台账</h3>
-          </div>
-          <button class="close-btn" @click="closeDetailModal" title="关闭">
-            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </header>
-
-        <div class="modal-body">
-          <div class="modal-toolbar">
-            <div class="modal-filter-item">
-              <span class="filter-label">选择日期 (天)：</span>
-              <input type="date" v-model="detailDailyDate" class="modal-date-input" />
-            </div>
-            <div class="modal-company-badge">{{ selectedCompany?.name }}</div>
-          </div>
-          
-          <div class="table-wrapper">
-            <table class="detail-table modal-inner-table">
-              <thead>
-                <tr>
-                  <th>公司名称</th>
-                  <th>费用类型</th>
-                  <th>金额(元)</th>
-                  <th>行项目文本</th>
-                </tr>
-              </thead>
-              <tbody :class="{ 'is-loading': dailyDetailLoading }">
-                <tr v-for="(row, idx) in dailyDetailList" :key="idx">
-                  <td class="company-name">{{ row.COMPANY_NAME }}</td>
-                  <td>
-                    <span class="type-tag" :class="
-                      (row.TYPES && row.TYPES.includes('销售')) ? 'tag-sales' : 
-                      (row.TYPES && row.TYPES.includes('管理')) ? 'tag-mgmt' : 
-                      (row.TYPES && row.TYPES.includes('财务')) ? 'tag-fin' : ''
-                    ">
-                      {{ row.TYPES }}
-                    </span>
-                  </td>
-                    <td class="number-cell">￥{{ Number(row.AMOUNT || 0).toFixed(2) }}</td>
-                  <td class="text-desc">{{ row.TEXT }}</td>
-                </tr>
-                <tr v-if="!dailyDetailLoading && dailyDetailList.length === 0">
-                  <td colspan="4" class="empty-text">该日期下暂无产生费用</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -694,7 +530,7 @@ void rightChartOption
 
 /* 图表与卡片容器通用 */
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.chart-card, .trend-card-full, .detail-card-full { background: var(--color-bg-card); border-radius: var(--radius-lg); padding: 20px 24px; border: 1px solid var(--color-border); box-shadow: var(--shadow-card); display: flex; flex-direction: column; min-height: 420px; }
+.chart-card, .trend-card-full { background: var(--color-bg-card); border-radius: var(--radius-lg); padding: 20px 24px; border: 1px solid var(--color-border); box-shadow: var(--shadow-card); display: flex; flex-direction: column; min-height: 420px; }
 .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
 .chart-title-wrap { display: flex; align-items: baseline; gap: 12px; }
 .chart-title { font-size: var(--fs-sm); font-weight: 700; color: var(--color-text-primary); margin: 0; }
@@ -717,69 +553,6 @@ void rightChartOption
 .box { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
 .box-dashed { width: 12px; height: 12px; border: 1.5px dashed #94a3b8; border-radius: 2px; display: inline-block; background: transparent; }
 
-/* 明细表格区域 */
-.detail-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
-.detail-title-wrap { display: flex; align-items: baseline; gap: 12px; }
-.detail-card-title { font-size: var(--fs-sm); font-weight: 700; color: var(--color-text-primary); margin: 0; }
-.detail-subtitle { font-size: var(--fs-xs); color: var(--color-text-secondary); }
-.detail-actions { display: flex; align-items: center; gap: 16px; }
-.month-filter { display: flex; align-items: center; gap: 8px; }
-.filter-label { font-size: var(--fs-xs); color: var(--color-text-secondary); white-space: nowrap; }
-.month-input { padding: 6px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--fs-xs); color: var(--color-text-primary); outline: none; }
-.search-box { position: relative; display: flex; align-items: center; }
-.search-icon { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--color-text-muted); pointer-events: none; }
-.search-input { padding: 7px 14px 7px 36px; background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: var(--fs-xs); outline: none; transition: all 0.2s; width: 220px; font-family: inherit; }
-.search-input::placeholder { color: var(--color-text-muted); }
-.search-input:focus { border-color: #2563eb; background-color: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-.table-wrapper { overflow-x: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-.table-wrapper::-webkit-scrollbar { height: 6px; }
-.table-wrapper::-webkit-scrollbar-track { background: transparent; }
-.table-wrapper::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-.detail-table { width: 100%; border-collapse: collapse; min-width: 800px; }
-.detail-table thead { background: #f8fafc; }
-.detail-table th { padding: 12px 16px; text-align: left; font-size: var(--fs-xs); font-weight: 600; color: var(--color-text-secondary); border-bottom: 2px solid var(--color-border); white-space: nowrap; }
-.detail-table td { padding: 14px 16px; font-size: var(--fs-xs); color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-.detail-table tbody tr { transition: background 0.2s; }
-.detail-table tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
-.company-cell { display: flex; align-items: center; gap: 10px; }
-.company-rank { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #3b82f6; color: #fff; border-radius: 6px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
-.company-name { font-weight: 600; color: var(--color-text-primary); }
-.number-cell { font-variant-numeric: tabular-nums; font-weight: 500; }
-.detail-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-.detail-btn svg { width: 14px; height: 14px; }
-.detail-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
-
-/* 弹窗及弹窗内部表格样式 */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; animation: fadeIn 0.2s ease-out; }
-.modal-container { background: #ffffff; border-radius: 12px; width: 90%; max-width: 800px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); transform: translateY(0); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; display: flex; flex-direction: column; max-height: 85vh; }
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; }
-.modal-title-wrap { display: flex; align-items: center; gap: 12px; }
-.modal-icon { width: 28px; height: 28px; background: #e0f2fe; color: #0284c7; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.modal-icon svg { width: 16px; height: 16px; }
-.modal-title { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
-.close-btn { background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-.close-btn:hover { background: #e2e8f0; color: #0f172a; }
-.close-btn svg { width: 20px; height: 20px; }
-
-.modal-body { padding: 20px 24px; overflow-y: auto; }
-.modal-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.modal-filter-item { display: flex; align-items: center; gap: 8px; }
-.modal-date-input { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #1e293b; outline: none; cursor: pointer; }
-.modal-date-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
-.modal-company-badge { padding: 6px 12px; background: #f1f5f9; border-radius: 6px; font-size: 13px; font-weight: 600; color: #334155; }
-
-.modal-inner-table th { background: #f8fafc; color: #475569; }
-.type-tag { display: inline-flex; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-.tag-sales { background: #eff6ff; color: #2563eb; }
-.tag-mgmt { background: #faf5ff; color: #9333ea; }
-.tag-fin { background: #ecfeff; color: #0891b2; }
-.text-desc { color: #64748b; font-size: 13px; max-width: 250px; white-space: normal; line-height: 1.4; }
-.empty-text { text-align: center; padding: 40px; color: #94a3b8; }
-.is-loading { opacity: 0.5; pointer-events: none; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
 /* 响应式设计 */
 @media (max-width: 1199px) { 
   .metrics-grid { grid-template-columns: repeat(2, 1fr); } 
@@ -787,7 +560,7 @@ void rightChartOption
 }
 @media (max-width: 1023px) { 
   .section { padding: 12px 16px 0; } 
-  .chart-card, .trend-card-full, .detail-card-full { padding: 16px 18px; min-height: 360px; } 
+  .chart-card, .trend-card-full { padding: 16px 18px; min-height: 360px; } 
   .chart-header { flex-direction: column; align-items: flex-start; gap: 12px; } 
   .budget-growth-grid { grid-template-columns: 1fr; } 
 }
@@ -801,14 +574,9 @@ void rightChartOption
   .metrics-grid { grid-template-columns: 1fr; gap: 10px; } 
   .metric-card { padding: 16px; } 
   .card-amount { font-size: var(--fs-lg); } 
-  .chart-card, .trend-card-full, .detail-card-full { padding: 16px; min-height: 320px; } 
+  .chart-card, .trend-card-full { padding: 16px; min-height: 320px; } 
   .chart-body, .trend-chart-body { min-height: 260px; } 
   .chart-header { flex-direction: column; align-items: flex-start; gap: 12px; } 
-  .detail-header-row { flex-direction: column; align-items: flex-start; gap: 12px; } 
-  .search-box, .search-input { width: 100%; } 
-  .detail-table th, .detail-table td { padding: 10px 12px; font-size: 12px; } 
-  .company-rank { width: 20px; height: 20px; font-size: 11px; } 
-  .detail-btn { padding: 5px 10px; font-size: 11px; } 
 }
-@media (max-width: 420px) { .card-amount { font-size: 22px; } .card-icon { width: 36px; height: 36px; } .card-icon svg { width: 20px; height: 20px; } .trend-card-full, .detail-card-full { min-height: 300px; } }
+@media (max-width: 420px) { .card-amount { font-size: 22px; } .card-icon { width: 36px; height: 36px; } .card-icon svg { width: 20px; height: 20px; } .trend-card-full { min-height: 300px; } }
 </style>

@@ -40,12 +40,12 @@ export const getUserPage = async (params: UserQuery) => {
 }
 
 export const updateUser = async (data: UserUpdatePayload) => {
-  const res = await http.put<any, ApiResponse<boolean>>('/v1/system/roles/users', data)
+  const res = await http.post<any, ApiResponse<boolean>>('/v1/system/roles/users/update', data)
   return res
 }
 
 export const deleteUser = async (id: number) => {
-  const res = await http.delete<any, ApiResponse<boolean>>(`/v1/system/roles/users/${id}`)
+  const res = await http.post<any, ApiResponse<boolean>>(`/v1/system/roles/users/delete/${id}`)
   return res
 }
 
@@ -70,12 +70,12 @@ export const importDingTalkUsers = async (data: DingTalkUserImportRequest) => {
 }
 
 export const updateRole = async (data: RolePayload) => {
-  const res = await http.put<any, ApiResponse<boolean | RoleItem>>('/v1/system/roles', data)
+  const res = await http.post<any, ApiResponse<boolean | RoleItem>>('/v1/system/roles/update', data)
   return res
 }
 
 export const deleteRole = async (id: number) => {
-  const res = await http.delete<any, ApiResponse<boolean>>(`/v1/system/roles/${id}`)
+  const res = await http.post<any, ApiResponse<boolean>>(`/v1/system/roles/delete/${id}`)
   return res
 }
 
@@ -90,7 +90,7 @@ export const getRoleMenuIds = async (roleId: number) => {
 }
 
 export const saveRoleMenus = async (roleId: number, menuIds: number[]) => {
-  const res = await http.put<any, ApiResponse<boolean>>(`/v1/system/roles/${roleId}/menus`, menuIds)
+  const res = await http.post<any, ApiResponse<boolean>>(`/v1/system/roles/${roleId}/menus/save`, menuIds)
   return res
 }
 
