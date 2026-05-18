@@ -2,11 +2,17 @@ import http from './http'
 import type {
   ApiResponse,
   ProductionDetailPage,
+  ProductionEnergyDetail,
+  ProductionHighRiskWorkDetail,
   ProductionOutputDetail,
   ProductionOverview,
   ProductionRankItem,
   ProductionRawConsumptionDetail,
+  ProductionStartupShutdownDetail,
+  ProductionToxicGasDetail,
   ProductionTransportDetail,
+  ProductionWasteDetail,
+  ProductionWaterGasDetail,
 } from '@/types'
 
 export async function getProductionOverview(date: string): Promise<ProductionOverview | null> {
@@ -66,5 +72,65 @@ export async function getProductionTransportDetails(params: {
   pageSize?: number
 }): Promise<ProductionDetailPage<ProductionTransportDetail>> {
   const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionTransportDetail>>>('/production/transport/details', { params })
+  return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
+}
+
+export async function getProductionEnergyDetails(params: {
+  date: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}): Promise<ProductionDetailPage<ProductionEnergyDetail>> {
+  const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionEnergyDetail>>>('/production/energy/details', { params })
+  return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
+}
+
+export async function getProductionStartupShutdownDetails(params: {
+  date: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}): Promise<ProductionDetailPage<ProductionStartupShutdownDetail>> {
+  const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionStartupShutdownDetail>>>('/production/startup-shutdown/details', { params })
+  return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
+}
+
+export async function getProductionHighRiskWorkDetails(params: {
+  date: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}): Promise<ProductionDetailPage<ProductionHighRiskWorkDetail>> {
+  const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionHighRiskWorkDetail>>>('/production/safety/high-risk/details', { params })
+  return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
+}
+
+export async function getProductionToxicGasDetails(params: {
+  date: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}): Promise<ProductionDetailPage<ProductionToxicGasDetail>> {
+  const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionToxicGasDetail>>>('/production/safety/toxic-gas/details', { params })
+  return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
+}
+
+export async function getProductionWasteDetails(params: {
+  date: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}): Promise<ProductionDetailPage<ProductionWasteDetail>> {
+  const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionWasteDetail>>>('/production/waste/details', { params })
+  return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
+}
+
+export async function getProductionWaterGasDetails(params: {
+  date: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}): Promise<ProductionDetailPage<ProductionWaterGasDetail>> {
+  const res = await http.get<any, ApiResponse<ProductionDetailPage<ProductionWaterGasDetail>>>('/production/environment/water-gas/details', { params })
   return res.data || { list: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 20 }
 }

@@ -92,7 +92,7 @@ const mainChartOption = computed(() => {
       formatter: (params: any[]) => {
         const d = params[0].data.raw
         const isDrop = d.deviationRate < 0
-        const symbol = d.region === '国内' ? '¥' : '¥'
+        const symbol = '￥'
         
         // 🌟 内部所有金额和百分比全部使用 Math.round 取整
         return `
@@ -135,9 +135,8 @@ const detailChartOption = computed(() => {
 
   const mobile = isMaxMd.value
   const targetPrice = item.sevenDayAvgPrice
-  const isDomestic = item.region === '国内'
-  const currencyName = isDomestic ? '人民币' : '美元'
-  const currencySymbol = isDomestic ? '¥' : '$' 
+  const currencyName = '人民币'
+  const currencySymbol = '￥' 
 
   const scatterSeries = detailData.value.map(d => {
     const isWarning = d.price < targetPrice * 0.95

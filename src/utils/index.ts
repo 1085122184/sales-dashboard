@@ -59,7 +59,7 @@ export function formatPercent(value: number, decimals = 1): string {
 /**
  * 格式化货币
  */
-export function formatCurrency(amount: number, currency = '¥'): string {
+export function formatCurrency(amount: number, currency = '￥'): string {
   return `${currency}${formatNumber(amount)}`
 }
 

@@ -200,10 +200,10 @@ const chartOption = computed(() => {
             </div>
             <div class="kpi-card">
               <div class="lbl">{{ trendTab === 'month' ? '本月' : '本年' }}均价</div>
-              <div class="val">¥{{ Math.round(detailData.kpi.avgPrice).toLocaleString() }}</div>
+      <div class="val">￥{{ Math.round(detailData.kpi.avgPrice).toLocaleString() }}</div>
               <div class="kpi-sub">
-                <span>国内 <b class="c-domestic">¥{{ Math.round(detailData.kpi.domesticAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
-                <span>国外 <b class="c-intl">¥{{ Math.round(detailData.kpi.intlAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+        <span>国内 <b class="c-domestic">￥{{ Math.round(detailData.kpi.domesticAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
+        <span>国外 <b class="c-intl">￥{{ Math.round(detailData.kpi.intlAvgPrice || 0).toLocaleString() }}</b> <span>元</span></span>
               </div>
             </div>
             <!-- <div class="kpi-card highlight">

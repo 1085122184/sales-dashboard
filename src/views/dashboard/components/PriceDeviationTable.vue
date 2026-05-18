@@ -134,7 +134,7 @@ function clearFilters() {
 }
 
 function formatPrice(item: PriceDeviationItem, field: 'sevenDay' | 'today' | 'amount') {
-  const symbol = item.region === '国内' ? '¥' : '¥'
+  const symbol = '￥'
   let rawVal: any = 0
   
   if (field === 'sevenDay') rawVal = item.sevenDayAvgPrice

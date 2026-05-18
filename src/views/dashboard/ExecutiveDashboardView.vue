@@ -131,7 +131,7 @@ const scatterOption = computed(() => {
         return `
           <div style="font-weight:700; font-size:16px; margin-bottom:8px">${d.customer}</div>
           <div style="color:#64748b; margin-bottom:4px">提货销量：<b style="color:#0f172a">${d.volume} 吨</b></div>
-          <div style="color:#64748b; margin-bottom:4px">实际单价：<b style="color:#0f172a">¥${d.unitPrice.toLocaleString()}</b></div>
+          <div style="color:#64748b; margin-bottom:4px">实际单价：<b style="color:#0f172a">￥${d.unitPrice.toLocaleString()}</b></div>
           <div style="color:#64748b">指导价偏离：<b style="color:${diff<0?'#ef4444':'#10b981'}">${diff>0?'+':''}${diff.toLocaleString()}元</b></div>
         `
       }
@@ -159,7 +159,7 @@ const scatterOption = computed(() => {
         symbol: ['none', 'none'],
         lineStyle: { color: '#f59e0b', type: 'dashed', width: 2 },
         data: [
-          { yAxis: targetPrice, label: { formatter: '预算指导均价: ¥{c}', position: 'end', color: '#d97706', fontWeight: 'bold' } }
+          { yAxis: targetPrice, label: { formatter: '预算指导均价: ￥{c}', position: 'end', color: '#d97706', fontWeight: 'bold' } }
         ]
       }
     }]
@@ -203,8 +203,8 @@ const formatWan = (val: number) => (val / 10000).toFixed(0) + '万'
         <div class="mc-value">{{ formatPct(globalMetrics.amtRate) }}</div>
         <div class="progress-track"><div class="progress-fill" :style="{ width: Math.min(globalMetrics.amtRate * 100, 100) + '%' }"></div></div>
         <div class="mc-desc">
-          <span>实际: ¥{{ formatWan(totalActualAmount) }}</span>
-          <span>预算: ¥{{ formatWan(totalBudgetAmount) }}</span>
+        <span>实际: ￥{{ formatWan(totalActualAmount) }}</span>
+        <span>预算: ￥{{ formatWan(totalBudgetAmount) }}</span>
         </div>
       </div>
       
@@ -224,8 +224,8 @@ const formatWan = (val: number) => (val / 10000).toFixed(0) + '万'
           {{ globalMetrics.priceDeviationRate > 0 ? '+' : '' }}{{ formatPct(globalMetrics.priceDeviationRate) }}
         </div>
         <div class="mc-desc mt-auto">
-          <span>实际均价: ¥{{ globalMetrics.actualAvgPrice.toFixed(0) }}</span>
-          <span>指导均价: ¥{{ globalMetrics.targetAvgPrice.toFixed(0) }}</span>
+            <span>实际均价: ￥{{ globalMetrics.actualAvgPrice.toFixed(0) }}</span>
+            <span>指导均价: ￥{{ globalMetrics.targetAvgPrice.toFixed(0) }}</span>
         </div>
         <div class="alert-tip" v-if="globalMetrics.priceDeviationRate < 0">⚠️ 均价已跌破预算基准线，利润流失！</div>
       </div>
@@ -302,15 +302,15 @@ const formatWan = (val: number) => (val / 10000).toFixed(0) + '万'
             <tr v-for="(row, idx) in customerRankings.redList.concat(customerRankings.greenList)" :key="idx">
               <td>{{ row.product }}</td>
               <td class="font-bold">{{ row.customer }}</td>
-              <td class="text-right font-bold" :class="row.priceDeviation < 0 ? 'text-danger' : ''">¥{{ row.unitPrice.toLocaleString() }}</td>
-              <td class="text-right text-muted">¥{{ row.targetPrice.toFixed(0) }}</td>
+                <td class="text-right font-bold" :class="row.priceDeviation < 0 ? 'text-danger' : ''">￥{{ row.unitPrice.toLocaleString() }}</td>
+                <td class="text-right text-muted">￥{{ row.targetPrice.toFixed(0) }}</td>
               <td class="text-right">
                 <span class="pill" :class="row.priceDeviation < 0 ? 'bg-red-light text-danger' : 'bg-green-light text-success'">
                   {{ row.priceDeviation > 0 ? '+' : '' }}{{ row.priceDeviation.toFixed(0) }}
                 </span>
               </td>
               <td class="text-right">{{ row.volume }} 吨</td>
-              <td class="text-right">¥{{ row.amount.toLocaleString() }}</td>
+                <td class="text-right">￥{{ row.amount.toLocaleString() }}</td>
               <td class="text-center font-bold">{{ formatPct(row.achievementRate) }}</td>
             </tr>
           </tbody>

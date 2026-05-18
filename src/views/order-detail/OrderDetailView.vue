@@ -396,8 +396,8 @@ onMounted(() => fetchCompanyList())
                                   <td>{{ item.customer }}</td>
                                   <td>{{ item.office }}</td>
                                   <td class="num">{{ item.volume }} 吨</td>
-                                  <td class="num">¥ {{ item.price }}</td>
-                                  <td class="num font-bold">¥ {{ item.amount }}</td>
+                    <td class="num">￥ {{ item.price }}</td>
+                    <td class="num font-bold">￥ {{ item.amount }}</td>
                                 </tr>
                               </template>
                               <template v-else>

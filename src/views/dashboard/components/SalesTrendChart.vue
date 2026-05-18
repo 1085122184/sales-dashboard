@@ -180,9 +180,8 @@ const detailChartOption = computed(() => {
     prices.push(isFuture ? null : t.price)
   })
 
-  const isDomestic = item.region === '国内'
-  const currencyName = isDomestic ? '人民币' : '美元'
-  const currencySymbol = isDomestic ? '¥' : '$'
+  const currencyName = '人民币'
+  const currencySymbol = '￥'
   const titlePrefix = trendTab.value === 'year' ? '本年' : '当月'
 
   return {

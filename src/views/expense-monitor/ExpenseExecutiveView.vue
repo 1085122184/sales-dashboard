@@ -397,7 +397,7 @@ void rightChartOption
             </span>
           </div>
           <div class="card-label">三费总额</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.totalExpense?.amount || 0 }}</span>{{ overview?.totalExpense?.unit || '万' }}</div>
+        <div class="card-amount">￥<span class="number">{{ overview?.totalExpense?.amount || 0 }}</span>{{ overview?.totalExpense?.unit || '万' }}</div>
           <div class="card-subtitle">{{ overview?.totalExpense?.yoyChangeText || '' }}</div>
         </div>
 
@@ -414,7 +414,7 @@ void rightChartOption
             </span>
           </div>
           <div class="card-label">销售费用</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.salesExpense?.amount || 0 }}</span>{{ overview?.salesExpense?.unit || '万' }}</div>
+        <div class="card-amount">￥<span class="number">{{ overview?.salesExpense?.amount || 0 }}</span>{{ overview?.salesExpense?.unit || '万' }}</div>
           <div class="card-subtitle">占比 {{ overview?.salesExpense?.percent || 0 }}%</div>
         </div>
 
@@ -431,7 +431,7 @@ void rightChartOption
             </span>
           </div>
           <div class="card-label">管理费用</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.managementExpense?.amount || 0 }}</span>{{ overview?.managementExpense?.unit || '万' }}</div>
+        <div class="card-amount">￥<span class="number">{{ overview?.managementExpense?.amount || 0 }}</span>{{ overview?.managementExpense?.unit || '万' }}</div>
           <div class="card-subtitle">占比 {{ overview?.managementExpense?.percent || 0 }}%</div>
         </div>
 
@@ -448,7 +448,7 @@ void rightChartOption
             </span>
           </div>
           <div class="card-label">财务费用</div>
-          <div class="card-amount">¥<span class="number">{{ overview?.financeExpense?.amount || 0 }}</span>{{ overview?.financeExpense?.unit || '万' }}</div>
+        <div class="card-amount">￥<span class="number">{{ overview?.financeExpense?.amount || 0 }}</span>{{ overview?.financeExpense?.unit || '万' }}</div>
           <div class="card-subtitle">占比 {{ overview?.financeExpense?.percent || 0 }}%</div>
         </div>
       </div>
@@ -563,9 +563,9 @@ void rightChartOption
                     <span class="company-name">{{ company.name }}</span>
                   </div>
                 </td>
-                <td class="number-cell">¥{{ Number(company.sales || 0).toFixed(2) }}万</td>
-                <td class="number-cell">¥{{ Number(company.management || 0).toFixed(2) }}万</td>
-                <td class="number-cell">¥{{ Number(company.finance || 0).toFixed(2) }}万</td>
+                    <td class="number-cell">￥{{ Number(company.sales || 0).toFixed(2) }}万</td>
+                    <td class="number-cell">￥{{ Number(company.management || 0).toFixed(2) }}万</td>
+                    <td class="number-cell">￥{{ Number(company.finance || 0).toFixed(2) }}万</td>
                 <td>
                   <button class="detail-btn" @click="openDetailModal(company)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -632,7 +632,7 @@ void rightChartOption
                       {{ row.TYPES }}
                     </span>
                   </td>
-                  <td class="number-cell">¥{{ Number(row.AMOUNT || 0).toFixed(2) }}</td>
+                    <td class="number-cell">￥{{ Number(row.AMOUNT || 0).toFixed(2) }}</td>
                   <td class="text-desc">{{ row.TEXT }}</td>
                 </tr>
                 <tr v-if="!dailyDetailLoading && dailyDetailList.length === 0">

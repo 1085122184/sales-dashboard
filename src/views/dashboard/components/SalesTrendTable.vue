@@ -103,7 +103,7 @@ function handleRowClick(item: SalesTrendProduct) {
   emit('select', props.selectedProduct === uniqueId ? null : uniqueId)
 }
 function formatPrice(item: SalesTrendProduct) {
-  const symbol = item.region === '国内' ? '¥' : '$'
+  const symbol = '￥'
   return `${symbol}${item.latestPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 </script>

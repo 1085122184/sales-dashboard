@@ -47,7 +47,7 @@ async function handleLogout() {
     <div class="app-layout">
       <header v-if="!hideHeader" class="global-header">
         <div class="header-left">
-          <span class="system-name">销售监控系统</span>
+          <span class="system-name">数据分析平台</span>
         </div>
         <div class="header-right">
           <span v-if="store.displayName" class="user-info">

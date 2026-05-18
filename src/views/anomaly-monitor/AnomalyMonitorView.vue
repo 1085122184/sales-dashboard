@@ -94,7 +94,7 @@ const chartOption = computed(() => {
         const d = params.value[2]
         return `<div style="font-weight:700;font-size:16px;margin-bottom:8px">${d.customer}</div>
                 <div>实际销量：${d.volume} 吨 (达标率 ${(d.volRate*100).toFixed(1)}%)</div>
-                <div>实际单价：<b style="color:${d.priceDeviation<0?'#ef4444':'#10b981'}">¥${d.unitPrice.toLocaleString()}</b></div>
+        <div>实际单价：<b style="color:${d.priceDeviation<0?'#ef4444':'#10b981'}">￥${d.unitPrice.toLocaleString()}</b></div>
                 <div>指导价偏离：${(d.priceDeviation*100).toFixed(1)}%</div>`
       }
     },
@@ -224,12 +224,12 @@ onUnmounted(() => {
               <div class="c-name">{{ item.customer }}</div>
               <div class="c-status">
                 <span :class="item.priceDeviation < 0 ? 'text-red' : ''">
-                  单价: ¥{{ item.unitPrice.toLocaleString() }} (偏离 {{(item.priceDeviation*100).toFixed(1)}}%)
+            单价: ￥{{ item.unitPrice.toLocaleString() }} (偏离 {{(item.priceDeviation*100).toFixed(1)}}%)
                 </span>
               </div>
             </div>
             <div class="gap-info">
-              <div class="gap-val">缺口 ¥{{ formatWan(item.gapAmount) }}</div>
+          <div class="gap-val">缺口 ￥{{ formatWan(item.gapAmount) }}</div>
               <div class="progress-bar">
                 <div class="progress-fill" :style="{width: `${Math.max(item.volRate*100, 5)}%`}"></div>
               </div>

@@ -1,6 +1,6 @@
 export interface ProductionMetric {
   label: string
-  value: number
+  value: number | null
   unit: string
   description?: string
 }
@@ -12,6 +12,40 @@ export interface ProductionThroughput {
   unit: string
 }
 
+export interface ProductionEnergyOverview {
+  water?: ProductionMetric | null
+  electricity?: ProductionMetric | null
+  refrigeration?: ProductionMetric | null
+  steam?: ProductionMetric | null
+  naturalGas?: ProductionMetric | null
+  hydrogen?: ProductionMetric | null
+  pureWater?: ProductionMetric | null
+}
+
+export interface ProductionStartupShutdownOverview {
+  startupCount?: number | null
+  shutdownCount?: number | null
+  totalCount?: number | null
+  unit?: string
+}
+
+export interface ProductionSafetyOverview {
+  processAlarm?: ProductionMetric | null
+  equipmentAlarm?: ProductionMetric | null
+  highRiskWork?: ProductionMetric | null
+  toxicGasAlarm?: ProductionMetric | null
+  riskCount?: ProductionMetric | null
+  dealCount?: ProductionMetric | null
+  rectificationRate?: number | null
+}
+
+export interface ProductionEnvironmentOverview {
+  exhaustEmissionPoints?: ProductionMetric | null
+  wastewaterEmissionPoints?: ProductionMetric | null
+  totalWaterGasPoints?: ProductionMetric | null
+  hazardousWaste?: ProductionMetric | null
+}
+
 export interface ProductionOverview {
   date: string
   totalOutput: ProductionMetric
@@ -20,6 +54,10 @@ export interface ProductionOverview {
   outputMaterialGroups: ProductionMetric
   rawMaterialKinds: ProductionMetric
   throughput: ProductionThroughput
+  energy?: ProductionEnergyOverview | null
+  startupShutdown?: ProductionStartupShutdownOverview | null
+  safety?: ProductionSafetyOverview | null
+  environment?: ProductionEnvironmentOverview | null
   latestInventoryTime: string
 }
 
@@ -45,7 +83,16 @@ export interface ProductionDetailPage<T> {
   pageSize: number
 }
 
-export type ProductionDetailType = 'output' | 'raw' | 'transport'
+export type ProductionDetailType =
+  | 'output'
+  | 'raw'
+  | 'transport'
+  | 'energy'
+  | 'startupShutdown'
+  | 'highRisk'
+  | 'toxicGas'
+  | 'waste'
+  | 'waterGas'
 
 export interface ProductionOutputDetail {
   company?: string
@@ -98,4 +145,67 @@ export interface ProductionTransportDetail {
   carrier?: string
   companyName?: string
   category?: string
+}
+
+export interface ProductionEnergyDetail {
+  inputDate?: string
+  postingDate?: string
+  orderNo?: string
+  factory?: string
+  water?: number
+  waterUnit?: string
+  electricity?: number
+  electricityUnit?: string
+  refrigeration?: number
+  refrigerationUnit?: string
+  steam?: number
+  steamUnit?: string
+  naturalGas?: number
+  naturalGasUnit?: string
+  hydrogen?: number
+  hydrogenUnit?: string
+  pureWater?: number
+  pureWaterUnit?: string
+}
+
+export interface ProductionStartupShutdownDetail {
+  sourceRn?: string
+  company?: string
+  device?: string
+  time?: string
+  dev?: string
+  standard?: string
+  sort?: string
+  value?: string
+}
+
+export interface ProductionHighRiskWorkDetail {
+  workDate?: string
+  companyName?: string
+  workCount?: number
+}
+
+export interface ProductionToxicGasDetail {
+  alarmDate?: string
+  company?: string
+  alarmCount?: number
+}
+
+export interface ProductionWasteDetail {
+  postingDate?: string
+  companyCode?: string
+  companyName?: string
+  company?: string
+  wasteCode?: string
+  wasteName?: string
+  output?: number
+}
+
+export interface ProductionWaterGasDetail {
+  pointCode?: string
+  pointName?: string
+  subName?: string
+  itemDesc?: string
+  generateTime?: string
+  groupTime?: string
 }

@@ -2,20 +2,183 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  getProductionEnergyDetails,
+  getProductionHighRiskWorkDetails,
   getProductionOutputDetails,
   getProductionRawConsumptionDetails,
+  getProductionStartupShutdownDetails,
+  getProductionToxicGasDetails,
   getProductionTransportDetails,
+  getProductionWasteDetails,
+  getProductionWaterGasDetails,
 } from '@/api/production-api'
 import type {
   ProductionDetailPage,
   ProductionDetailType,
+  ProductionEnergyDetail,
+  ProductionHighRiskWorkDetail,
   ProductionOutputDetail,
   ProductionRawConsumptionDetail,
+  ProductionStartupShutdownDetail,
+  ProductionToxicGasDetail,
   ProductionTransportDetail,
+  ProductionWasteDetail,
+  ProductionWaterGasDetail,
 } from '@/types'
+
+type DetailRow =
+  | ProductionOutputDetail
+  | ProductionRawConsumptionDetail
+  | ProductionTransportDetail
+  | ProductionEnergyDetail
+  | ProductionStartupShutdownDetail
+  | ProductionHighRiskWorkDetail
+  | ProductionToxicGasDetail
+  | ProductionWasteDetail
+  | ProductionWaterGasDetail
+
+type Column = readonly [string, string]
+
+interface DetailConfig {
+  label: string
+  placeholder: string
+  columns: Column[]
+}
 
 const route = useRoute()
 const router = useRouter()
+
+const detailTypes: ProductionDetailType[] = [
+  'output',
+  'raw',
+  'transport',
+  'energy',
+  'startupShutdown',
+  'highRisk',
+  'toxicGas',
+  'waste',
+  'waterGas',
+]
+
+const detailConfig: Record<ProductionDetailType, DetailConfig> = {
+  output: {
+    label: '产量明细',
+    placeholder: '搜索物料、工作中心',
+    columns: [
+      ['postingDate', '过账日期'],
+      ['company', '公司'],
+      ['materialName', '物料'],
+      ['materialGroupName', '物料组'],
+      ['workCenter', '工作中心'],
+      ['output', '产量'],
+    ],
+  },
+  raw: {
+    label: '原料消耗',
+    placeholder: '搜索物料、订单、批次',
+    columns: [
+      ['postingDate', '过账日期'],
+      ['factoryName', '工厂'],
+      ['materialName', '物料'],
+      ['materialGroupName', '物料组'],
+      ['workCenterName', '工作中心'],
+      ['orderNo', '订单'],
+      ['batchNo', '批次'],
+      ['quantity', '数量'],
+      ['unit', '单位'],
+    ],
+  },
+  transport: {
+    label: '车辆运输',
+    placeholder: '搜索车牌、物料、客户',
+    columns: [
+      ['weighingDate', '过磅日期'],
+      ['category', '分类'],
+      ['plateNo', '车牌号'],
+      ['materialName', '物料'],
+      ['customerName', '客户'],
+      ['carrier', '承运商'],
+      ['grossWeight', '组毛'],
+      ['tareWeight', '组皮'],
+      ['netWeight', '组净'],
+    ],
+  },
+  energy: {
+    label: '能源消耗',
+    placeholder: '搜索订单、工厂',
+    columns: [
+      ['postingDate', '过账日期'],
+      ['factory', '工厂'],
+      ['orderNo', '订单'],
+      ['water', '水'],
+      ['waterUnit', '水单位'],
+      ['electricity', '电'],
+      ['electricityUnit', '电单位'],
+      ['steam', '蒸汽'],
+      ['steamUnit', '蒸汽单位'],
+      ['naturalGas', '天然气'],
+      ['naturalGasUnit', '天然气单位'],
+      ['pureWater', '纯水'],
+      ['pureWaterUnit', '纯水单位'],
+    ],
+  },
+  startupShutdown: {
+    label: '开停车',
+    placeholder: '搜索公司、装置、指标',
+    columns: [
+      ['time', '时间'],
+      ['company', '公司'],
+      ['device', '装置'],
+      ['dev', 'DEV'],
+      ['standard', '标准'],
+      ['sort', '排序'],
+      ['value', '值'],
+    ],
+  },
+  highRisk: {
+    label: '高危作业',
+    placeholder: '搜索公司',
+    columns: [
+      ['workDate', '作业日期'],
+      ['companyName', '公司名称'],
+      ['workCount', '作业数'],
+    ],
+  },
+  toxicGas: {
+    label: '有毒气体',
+    placeholder: '搜索公司',
+    columns: [
+      ['alarmDate', '报警日期'],
+      ['company', '公司'],
+      ['alarmCount', '报警数'],
+    ],
+  },
+  waste: {
+    label: '危废产生',
+    placeholder: '搜索公司、危废代码、危废名称',
+    columns: [
+      ['postingDate', '过账日期'],
+      ['companyCode', '公司编码'],
+      ['companyName', '公司名称'],
+      ['company', '公司'],
+      ['wasteCode', '危废代码'],
+      ['wasteName', '危废名称'],
+      ['output', '产生量'],
+    ],
+  },
+  waterGas: {
+    label: '废气废水',
+    placeholder: '搜索点位、子点位、指标',
+    columns: [
+      ['pointCode', '点位编码'],
+      ['pointName', '点位名称'],
+      ['subName', '子点位'],
+      ['itemDesc', '指标描述'],
+      ['generateTime', '生成时间'],
+      ['groupTime', '集团时间'],
+    ],
+  },
+}
 
 const type = ref<ProductionDetailType>(normalizeType(route.query.type))
 const date = ref(String(route.query.date || ''))
@@ -27,51 +190,14 @@ const error = ref('')
 const rows = ref<Array<Record<string, unknown>>>([])
 const total = ref(0)
 
-const title = computed(() => {
-  if (type.value === 'raw') return '原料消耗明细'
-  if (type.value === 'transport') return '车辆运输明细'
-  return '产量明细'
-})
-
-const columns = computed(() => {
-  if (type.value === 'raw') {
-    return [
-      ['postingDate', '过账日期'],
-      ['factoryName', '工厂'],
-      ['materialName', '物料'],
-      ['materialGroupName', '物料组'],
-      ['workCenterName', '工作中心'],
-      ['orderNo', '订单'],
-      ['batchNo', '批次'],
-      ['quantity', '数量'],
-      ['unit', '单位'],
-    ]
-  }
-  if (type.value === 'transport') {
-    return [
-      ['weighingDate', '过磅日期'],
-      ['category', '分类'],
-      ['plateNo', '车牌号'],
-      ['materialName', '物料'],
-      ['customerName', '客户'],
-      ['carrier', '承运商'],
-      ['grossWeight', '组毛'],
-      ['tareWeight', '组皮'],
-      ['netWeight', '组净'],
-    ]
-  }
-  return [
-    ['postingDate', '过账日期'],
-    ['company', '公司'],
-    ['materialName', '物料'],
-    ['materialGroupName', '物料组'],
-    ['workCenter', '工作中心'],
-    ['output', '产量'],
-  ]
-})
+const currentConfig = computed(() => detailConfig[type.value])
+const title = computed(() => currentConfig.value.label)
+const columns = computed(() => currentConfig.value.columns)
+const searchPlaceholder = computed(() => currentConfig.value.placeholder)
 
 function normalizeType(value: unknown): ProductionDetailType {
-  return value === 'raw' || value === 'transport' ? value : 'output'
+  const text = Array.isArray(value) ? value[0] : value
+  return detailTypes.includes(text as ProductionDetailType) ? text as ProductionDetailType : 'output'
 }
 
 function formatCell(value: unknown): string {
@@ -82,20 +208,29 @@ function formatCell(value: unknown): string {
   return String(value)
 }
 
+async function loadByType(params: { date: string; keyword?: string; page: number; pageSize: number }): Promise<ProductionDetailPage<DetailRow>> {
+  if (type.value === 'raw') return getProductionRawConsumptionDetails(params)
+  if (type.value === 'transport') return getProductionTransportDetails(params)
+  if (type.value === 'energy') return getProductionEnergyDetails(params)
+  if (type.value === 'startupShutdown') return getProductionStartupShutdownDetails(params)
+  if (type.value === 'highRisk') return getProductionHighRiskWorkDetails(params)
+  if (type.value === 'toxicGas') return getProductionToxicGasDetails(params)
+  if (type.value === 'waste') return getProductionWasteDetails(params)
+  if (type.value === 'waterGas') return getProductionWaterGasDetails(params)
+  return getProductionOutputDetails(params)
+}
+
 async function fetchData() {
   if (!date.value) return
   loading.value = true
   error.value = ''
   try {
-    const common = { date: date.value, keyword: keyword.value || undefined, page: page.value, pageSize: pageSize.value }
-    let result: ProductionDetailPage<ProductionOutputDetail | ProductionRawConsumptionDetail | ProductionTransportDetail>
-    if (type.value === 'raw') {
-      result = await getProductionRawConsumptionDetails(common)
-    } else if (type.value === 'transport') {
-      result = await getProductionTransportDetails(common)
-    } else {
-      result = await getProductionOutputDetails(common)
-    }
+    const result = await loadByType({
+      date: date.value,
+      keyword: keyword.value || undefined,
+      page: page.value,
+      pageSize: pageSize.value,
+    })
     rows.value = result.list as Array<Record<string, unknown>>
     total.value = result.total
   } catch (e) {
@@ -108,6 +243,7 @@ async function fetchData() {
 function switchType(nextType: ProductionDetailType) {
   if (type.value === nextType) return
   type.value = nextType
+  keyword.value = ''
   page.value = 1
   router.replace({ path: '/production-detail', query: { type: nextType, date: date.value } })
   fetchData()
@@ -133,6 +269,7 @@ function nextPage() {
 watch(() => route.query, query => {
   type.value = normalizeType(query.type)
   date.value = String(query.date || date.value)
+  keyword.value = ''
   page.value = 1
   fetchData()
 })
@@ -152,12 +289,17 @@ onMounted(fetchData)
 
     <section class="toolbar">
       <div class="tabs">
-        <button :class="{ active: type === 'output' }" @click="switchType('output')">产量明细</button>
-        <button :class="{ active: type === 'raw' }" @click="switchType('raw')">原料消耗</button>
-        <button :class="{ active: type === 'transport' }" @click="switchType('transport')">车辆运输</button>
+        <button
+          v-for="item in detailTypes"
+          :key="item"
+          :class="{ active: type === item }"
+          @click="switchType(item)"
+        >
+          {{ detailConfig[item].label }}
+        </button>
       </div>
       <div class="search-box">
-        <input v-model="keyword" placeholder="搜索物料、订单、车牌、客户" @keyup.enter="search" />
+        <input v-model="keyword" :placeholder="searchPlaceholder" @keyup.enter="search" />
         <button @click="search">查询</button>
       </div>
     </section>
@@ -224,13 +366,13 @@ onMounted(fetchData)
 .back-btn, .toolbar button { background: #fff; color: #2563eb; }
 .back-btn:hover, .toolbar button:hover, .toolbar button.active { background: #2563eb; color: #fff; }
 .toolbar {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   gap: 14px;
   justify-content: space-between;
   margin-top: 16px;
 }
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; max-width: 920px; }
 .search-box { display: flex; gap: 8px; }
 .search-box input {
   background: #fff;
@@ -238,7 +380,7 @@ onMounted(fetchData)
   border-radius: var(--radius-sm);
   color: #1e293b;
   font-size: var(--fs-xs);
-  min-width: 260px;
+  min-width: 300px;
   outline: none;
   padding: 8px 10px;
 }
@@ -261,7 +403,7 @@ onMounted(fetchData)
 }
 .loading { color: #64748b; padding: 40px; text-align: center; }
 .table-wrap { overflow: auto; }
-table { border-collapse: collapse; min-width: 920px; width: 100%; }
+table { border-collapse: collapse; min-width: 980px; width: 100%; }
 th {
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
@@ -297,6 +439,7 @@ td.number { color: #0f4fe6; font-variant-numeric: tabular-nums; font-weight: 700
   .detail-page { padding: 12px; }
   .detail-header { align-items: flex-start; flex-direction: column; gap: 10px; }
   .toolbar { align-items: stretch; flex-direction: column; }
+  .tabs { max-width: none; }
   .search-box input { min-width: 0; width: 100%; }
 }
 </style>

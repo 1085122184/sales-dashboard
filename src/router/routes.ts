@@ -134,7 +134,7 @@ export const appRoutes: RouteRecordRaw[] = [
     name: 'ProductionDashboard',
     component: () => import('@/views/production/ProductionDashboardView.vue'),
     meta: {
-      title: '生产运营指标大盘',
+      title: '生产及安全环保指标大盘',
       requiresAuth: true,
       menuPathRequired: true,
       requiresPermission: DECISION_PERMISSIONS.PRODUCTION_VIEW
