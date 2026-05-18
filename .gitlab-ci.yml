@@ -2,7 +2,6 @@ stages:
   - deploy
 
 .deploy_frontend_template:
-.deploy_frontend_template:
   stage: deploy
   image:
     name: node:22-alpine
@@ -13,9 +12,6 @@ stages:
     - apk add --no-cache openssh-client rsync
     - test -n "$DEPLOY_HOST"
     - test -n "$DEPLOY_USER"
-    - test -n "$DEPLOY_DIR"
-    - test -n "$DEPLOY_SSH_PRIVATE_KEY"
-    - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}, dir=${DEPLOY_DIR}"
     - test -n "$DEPLOY_DIR"
     - test -n "$DEPLOY_SSH_PRIVATE_KEY"
     - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}, dir=${DEPLOY_DIR}"
@@ -40,8 +36,7 @@ stages:
         set -e
         DEPLOY_DIR='$DEPLOY_DIR'
         cd \"\$DEPLOY_DIR\"
-        docker compose up -d --build --no-deps frontend
-        docker compose up -d --build --no-deps frontend
+        docker compose up -d --no-build --force-recreate --no-deps frontend
         docker image prune -f
       "
 
