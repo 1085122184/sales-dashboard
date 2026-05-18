@@ -76,6 +76,55 @@ export interface ProductionRankItem {
   updateTime?: string
 }
 
+export interface ProductionTimeline {
+  dayOfMonth?: number
+  daysInMonth?: number
+  remainingDays?: number
+  progress?: number
+}
+
+export interface ProductionTrendPoint {
+  date?: string
+  label?: string
+  series?: string
+  value?: number
+}
+
+export interface ProductionRankingItem {
+  code?: string
+  name?: string
+  category?: string
+  unit?: string
+  value?: number
+  secondaryValue?: number
+  thirdValue?: number
+}
+
+export interface ProductionWorkbenchCard {
+  id?: string
+  name?: string
+  subtitle?: string
+  unit?: string
+  value?: number
+  secondaryValue?: number
+  thirdValue?: number
+  rate?: number
+  metrics?: ProductionMetric[]
+}
+
+export interface ProductionWorkbench {
+  type: ProductionDetailType
+  date: string
+  title: string
+  scope?: string
+  emptyReason?: string
+  timeline?: ProductionTimeline
+  summary?: ProductionMetric[]
+  cards?: ProductionWorkbenchCard[]
+  dailyTrends?: ProductionTrendPoint[]
+  rankings?: ProductionRankingItem[]
+}
+
 export interface ProductionDetailPage<T> {
   list: T[]
   total: number

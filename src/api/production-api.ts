@@ -13,6 +13,7 @@ import type {
   ProductionTransportDetail,
   ProductionWasteDetail,
   ProductionWaterGasDetail,
+  ProductionWorkbench,
 } from '@/types'
 
 export async function getProductionOverview(date: string): Promise<ProductionOverview | null> {
@@ -38,6 +39,15 @@ export async function getProductionProductInventory(date: string): Promise<Produ
 export async function getProductionThroughputByFactory(date: string): Promise<ProductionRankItem[]> {
   const res = await http.get<any, ApiResponse<ProductionRankItem[]>>('/production/throughput/by-factory', { params: { date } })
   return res.data || []
+}
+
+export async function getProductionWorkbench(params: {
+  type: string
+  date: string
+  scope?: string
+}): Promise<ProductionWorkbench | null> {
+  const res = await http.get<any, ApiResponse<ProductionWorkbench>>('/production/workbench', { params })
+  return res.data || null
 }
 
 export async function getProductionOutputDetails(params: {
