@@ -109,6 +109,9 @@ export interface CompanyGrowthPoint {
   momValue: number        // 上期环比值(万)
   yoy: number             // 同比增长率 %
   mom: number             // 环比增长率 %
+  currentYtdValue: number // 本年累计值(万)
+  yoyYtdValue: number     // 去年同期累计值(万)
+  yoyYtd: number          // 累计同比增长率 %
 }
 
 export async function getCompanyGrowthData(params?: { date: string }): Promise<CompanyGrowthPoint[]> {

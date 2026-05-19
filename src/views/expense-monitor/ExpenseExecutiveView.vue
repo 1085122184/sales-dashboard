@@ -46,12 +46,13 @@ const growthChartOption = computed(() => {
   if (!companyGrowthData.value || companyGrowthData.value.length === 0) return {}
   
   const isYoy = growthViewType.value === 'yoy'
-  const compareName = isYoy ? '去年同期' : '上月同期'
+  const currentName = isYoy ? '本年累计' : '本期金额'
+  const compareName = isYoy ? '去年累计' : '上月同期'
 
   const categories = companyGrowthData.value.map(d => d.companyName)
-  const currentData = companyGrowthData.value.map(d => d.currentValue)
-  const compareData = companyGrowthData.value.map(d => isYoy ? d.yoyValue : d.momValue)
-  const rates = companyGrowthData.value.map(d => isYoy ? d.yoy : d.mom)
+  const currentData = companyGrowthData.value.map(d => isYoy ? d.currentYtdValue : d.currentValue)
+  const compareData = companyGrowthData.value.map(d => isYoy ? d.yoyYtdValue : d.momValue)
+  const rates = companyGrowthData.value.map(d => isYoy ? d.yoyYtd : d.mom)
 
   return {
     tooltip: {
@@ -61,7 +62,7 @@ const growthChartOption = computed(() => {
       borderColor: CHART_COLORS.axisLine,
       borderWidth: 1,
       formatter: (params: any) => {
-        const current = params.find((p: any) => p.seriesName === '本期金额')
+        const current = params.find((p: any) => p.seriesName === currentName)
         const compare = params.find((p: any) => p.seriesName === compareName)
         const dataIndex = params[0].dataIndex
         const rate = rates[dataIndex]
@@ -73,13 +74,13 @@ const growthChartOption = computed(() => {
           <div style="color: #fff; font-size: 13px;">
             <div style="font-weight:700; border-bottom:1px solid #475569; padding-bottom:4px; margin-bottom:6px;">${params[0].name}</div>
             <div style="display:flex; justify-content:space-between; min-width: 150px;">
-              <span>${current.marker} 本期金额:</span> <b>${current.value} 万</b>
+              <span>${current.marker} ${currentName}:</span> <b>${current.value} 万</b>
             </div>
             <div style="display:flex; justify-content:space-between; min-width: 150px; margin-bottom:4px;">
               <span>${compare.marker} ${compareName}:</span> <b>${compare.value} 万</b>
             </div>
             <div style="display:flex; justify-content:space-between; min-width: 150px; border-top:1px dashed #475569; padding-top:6px; margin-top:4px;">
-              <span style="color:#cbd5e1;">${isYoy ? '同比' : '环比'}变化:</span> 
+              <span style="color:#cbd5e1;">${isYoy ? '累计同比' : '环比'}变化:</span> 
               <b style="color: ${rateColor}">${sign}${rate}%</b>
             </div>
           </div>
@@ -87,7 +88,7 @@ const growthChartOption = computed(() => {
       }
     },
     legend: {
-      data: ['本期金额', compareName],
+      data: [currentName, compareName],
       top: 0,
       right: 0,
       textStyle: { color: CHART_COLORS.axisLabel },
@@ -112,7 +113,7 @@ const growthChartOption = computed(() => {
     },
     series: [
       {
-        name: '本期金额',
+        name: currentName,
         type: 'bar',
         barWidth: '26%',
         barGap: '15%',
