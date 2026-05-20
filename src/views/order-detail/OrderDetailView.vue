@@ -178,9 +178,15 @@ function clearFilters() {
   sortAsc.value = true
 }
 
+function getOrderPrice(row: OrderRecord) {
+  if (row.price !== null && row.price !== undefined) return Number(row.price).toFixed(2)
+  if (!row.orderNum) return '-'
+  return (Number(row.orderAmount || 0) / Number(row.orderNum)).toFixed(2)
+}
+
 // 🌟 导出 CSV
 function exportToCSV() {
-  const headers = ['日期', '订单号', '物料组', '交货状态', '销售组织', '办事处', '业务员', '客户', '渠道']
+  const headers = ['日期', '订单号', '物料组', '交货状态', '销售组织', '办事处', '业务员', '客户', '渠道', '金额', '数量', '单价']
   const rows = processedData.value.map(r => [
     r.orderDate,
     r.orderNo,
@@ -190,7 +196,10 @@ function exportToCSV() {
     r.office,
     r.salesPerson,
     r.customer,
-    r.channel
+    r.channel,
+    r.orderAmount,
+    r.orderNum,
+    getOrderPrice(r)
   ])
   
   const csvContent = [
@@ -319,6 +328,7 @@ onMounted(() => fetchCompanyList())
                     </th> -->
                     <th>金额</th>
                     <th>数量</th>
+                    <th>单价</th>
                     <th>办事处</th>
                     <!-- <th>业务员</th> -->
                     <th class="sortable" @click="toggleSort('customer')">
@@ -329,7 +339,7 @@ onMounted(() => fetchCompanyList())
                 </thead>
                 <tbody>
                   <tr v-if="totalCount === 0">
-                    <td colspan="10" class="empty-state">
+                    <td colspan="9" class="empty-state">
                       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="m21 21-4.35-4.35"/>
@@ -367,6 +377,7 @@ onMounted(() => fetchCompanyList())
                       </td> -->
                       <td>￥ {{ row.orderAmount }} 元</td>
                       <td>{{ row.orderNum }} 吨</td>
+                      <td>￥ {{ getOrderPrice(row) }}</td>
                       <td>{{ row.office }}</td>
                       <!-- <td>{{ row.salesPerson }}</td> -->
                       <td class="td-customer" :title="row.customer">{{ row.customer }}</td>
@@ -374,7 +385,7 @@ onMounted(() => fetchCompanyList())
                     </tr>
                     
                     <tr v-if="expandedRows.has(row.orderNo)" class="detail-row">
-                      <td colspan="10" class="detail-cell">
+                      <td colspan="9" class="detail-cell">
                         <div class="nested-table-container">
                           <table class="inner-table">
                             <thead>
@@ -402,7 +413,7 @@ onMounted(() => fetchCompanyList())
                               </template>
                               <template v-else>
                                 <tr>
-                                  <td colspan="6" class="empty-inner">
+                                  <td colspan="7" class="empty-inner">
                                     暂无订单明细数据
                                   </td>
                                 </tr>

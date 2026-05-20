@@ -164,6 +164,7 @@ export interface OrderRecord {
   channel: string
   orderNum:number
   orderAmount:number
+  price?: number | null
   details?: OrderDetailItem[]
 }
 

@@ -23,6 +23,7 @@ interface MetricLine {
 
 const store = useGlobalStore()
 const router = useRouter()
+const productionDate = computed(() => store.yesterdayStr)
 
 const loading = ref(false)
 const error = ref('')
@@ -74,7 +75,7 @@ function formatValueLine(line: MetricLine): string {
 function goDetail(type: DetailTarget) {
   router.push({
     path: '/production-detail',
-    query: { type, date: store.backendDateStr },
+    query: { type, date: productionDate.value },
   })
 }
 
@@ -117,7 +118,7 @@ async function refresh() {
   loading.value = true
   error.value = ''
   try {
-    const date = store.backendDateStr
+    const date = productionDate.value
     const [overviewRes, outputRes, rawRes, inventoryRes] = await Promise.all([
       getProductionOverview(date),
       getProductionOutputByMaterialGroup(date),
@@ -135,7 +136,7 @@ async function refresh() {
   }
 }
 
-watch(() => store.backendDateStr, refresh)
+watch(productionDate, refresh)
 
 onMounted(refresh)
 </script>

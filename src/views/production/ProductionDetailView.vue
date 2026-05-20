@@ -8,6 +8,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import BaseEChart from '@/components/charts/BaseEChart.vue'
 import DetailTopBar from '@/components/business/DetailTopBar.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useGlobalStore } from '@/store/useGlobalStore'
 import {
   getProductionEnergyDetails,
   getProductionHighRiskWorkDetails,
@@ -67,6 +68,7 @@ interface DetailConfig {
 const route = useRoute()
 const router = useRouter()
 const { isMaxMd } = useBreakpoint()
+const store = useGlobalStore()
 
 const detailTypes: ProductionDetailType[] = [
   'output',
@@ -146,24 +148,19 @@ const detailConfig: Record<ProductionDetailType, DetailConfig> = {
     title: '能源消耗',
     metricName: '能源',
     unit: '',
-    primaryLabel: '水',
-    secondaryLabel: '电',
-    thirdLabel: '蒸汽',
-    placeholder: '搜索订单、工厂',
+    primaryLabel: '点位数',
+    secondaryLabel: '介质数',
+    thirdLabel: '累积量',
+    placeholder: '搜索介质、点位、区域、公司',
     columns: [
       ['postingDate', '过账日期'],
-      ['factory', '工厂'],
-      ['orderNo', '订单'],
-      ['water', '水'],
-      ['waterUnit', '水单位'],
-      ['electricity', '电'],
-      ['electricityUnit', '电单位'],
-      ['steam', '蒸汽'],
-      ['steamUnit', '蒸汽单位'],
-      ['naturalGas', '天然气'],
-      ['naturalGasUnit', '天然气单位'],
-      ['pureWater', '纯水'],
-      ['pureWaterUnit', '纯水单位'],
+      ['medium', '介质'],
+      ['point', '点位'],
+      ['pointStatus', '点位状态'],
+      ['cumulativeValue', '累积量'],
+      ['area', '区域'],
+      ['company', '公司'],
+      ['companyCode', '公司编码'],
     ],
   },
   startupShutdown: {
@@ -255,7 +252,7 @@ const detailConfig: Record<ProductionDetailType, DetailConfig> = {
 }
 
 const type = ref<ProductionDetailType>(normalizeType(route.query.type))
-const date = ref(String(route.query.date || ''))
+const date = ref(String(route.query.date || store.yesterdayStr))
 const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(20)
@@ -549,7 +546,7 @@ const hasRankingChart = computed(() => Object.keys(rankingChartOption.value).len
 
 watch(() => route.query, query => {
   type.value = normalizeType(query.type)
-  date.value = String(query.date || date.value)
+  date.value = String(query.date || store.yesterdayStr)
   selectedScope.value = ''
   keyword.value = ''
   page.value = 1

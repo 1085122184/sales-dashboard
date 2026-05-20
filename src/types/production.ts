@@ -197,24 +197,14 @@ export interface ProductionTransportDetail {
 }
 
 export interface ProductionEnergyDetail {
-  inputDate?: string
   postingDate?: string
-  orderNo?: string
-  factory?: string
-  water?: number
-  waterUnit?: string
-  electricity?: number
-  electricityUnit?: string
-  refrigeration?: number
-  refrigerationUnit?: string
-  steam?: number
-  steamUnit?: string
-  naturalGas?: number
-  naturalGasUnit?: string
-  hydrogen?: number
-  hydrogenUnit?: string
-  pureWater?: number
-  pureWaterUnit?: string
+  medium?: string
+  point?: string
+  pointStatus?: string
+  cumulativeValue?: number
+  area?: string
+  company?: string
+  companyCode?: string
 }
 
 export interface ProductionStartupShutdownDetail {
